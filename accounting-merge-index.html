@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分院會計月報合併系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+:root{
+  --navy:#1c2b4a;--navy2:#243560;--gold:#b8860b;--gold2:#d4a017;--cream:#faf8f3;
+  --border:#ddd5be;--text:#1a1a2e;--muted:#6b6b8a;--green:#2e7d52;--red:#b52b2b;
+  --bg2:#f3f0e8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--cream);color:var(--text);font-size:13px;line-height:1.6}
+ 
+/* HEADER */
+header{background:var(--navy);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--gold)}
+header h1{font-family:'Noto Serif TC',serif;font-size:17px;font-weight:700;letter-spacing:.1em}
+header span{font-size:11px;color:rgba(255,255,255,.45);margin-left:auto}
+ 
+/* LAYOUT */
+.wrap{display:flex;height:calc(100vh - 57px)}
+ 
+/* PANEL */
+.panel{width:300px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.pblock{padding:14px 16px;border-bottom:1px solid var(--bg2)}
+.pblock:last-child{border-bottom:none;flex:1;overflow-y:auto}
+.plabel{font-size:10px;font-weight:500;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.plabel::before{content:'';width:3px;height:11px;background:var(--gold);border-radius:2px;display:inline-block}
+ 
+/* DROP ZONE */
+.drop{border:1.5px dashed var(--border);border-radius:8px;padding:18px 12px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg2)}
+.drop:hover,.drop.over{border-color:var(--gold2);background:#fef9ec}
+.drop-ico{font-size:24px;margin-bottom:6px}
+.drop-txt{font-size:12px;color:var(--muted)}
+.drop-txt b{color:var(--navy)}
+input[type=file]{display:none}
+ 
+/* FILE CHIPS */
+.flist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.fchip{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-left:3px solid var(--green);border-radius:6px;padding:7px 10px;font-size:12px}
+.fchip .fn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fchip .fb{font-size:11px;font-weight:600;color:var(--gold);display:block}
+.fchip .rm{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:0 2px}
+.fchip .rm:hover{color:var(--red)}
+ 
+/* LOG */
+.log{font-size:11px;color:var(--muted);line-height:1.9;max-height:72px;overflow-y:auto;margin-top:8px}
+.log .ok{color:var(--green)}.log .er{color:var(--red)}
+ 
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;font-family:inherit;transition:.15s;width:100%;justify-content:center}
+.btn-navy{background:var(--navy);color:#fff}.btn-navy:hover:not(:disabled){background:var(--navy2)}
+.btn-gold{background:var(--gold2);color:var(--navy);font-weight:700}.btn-gold:hover:not(:disabled){background:#e6b820}
+.btn-out{background:#fff;color:var(--navy);border-color:var(--border)}.btn-out:hover{border-color:var(--navy)}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn-sm{padding:5px 10px;font-size:11px;width:auto}
+.gap6{display:flex;flex-direction:column;gap:6px}
+ 
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tabs{background:#fff;border-bottom:1px solid var(--border);display:flex;padding:0 20px;gap:0;align-items:center}
+.tab{padding:12px 16px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--navy)}.tab.on{color:var(--navy);border-bottom-color:var(--gold)}
+.tab-r{margin-left:auto;font-size:11px;color:var(--muted)}
+ 
+.content{flex:1;overflow:auto;padding:18px 20px}
+ 
+/* STATUS */
+.statusbar{background:#fff;border-top:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.ok{background:var(--green)}.dot.run{background:var(--gold2);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+ 
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;color:var(--muted);gap:10px;text-align:center}
+.empty-ico{font-size:52px;opacity:.25}
+.empty-t{font-size:15px;font-weight:500;color:#555}
+.empty-s{font-size:12px;max-width:300px}
+ 
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:13px 15px}
+.card.hl{border-left:3px solid var(--gold)}
+.card-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.card-v{font-size:19px;font-weight:700;font-family:'Noto Serif TC',serif;color:var(--navy)}
+.card-s{font-size:11px;color:var(--muted);margin-top:2px}
+ 
+/* TABLE */
+.twrap{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.thead-bar{padding:9px 14px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px}
+.thead-bar .tt{font-size:12px;font-weight:600;letter-spacing:.05em}
+.thead-bar .ts{font-size:11px;color:rgba(255,255,255,.5)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg2);color:var(--navy);font-weight:600;padding:7px 9px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px}
+th:first-child{text-align:left}
+td{padding:6px 9px;border-bottom:1px solid #f0ece0;color:#444;text-align:right;vertical-align:middle}
+td:first-child{text-align:left;color:var(--text)}
+td.i1{padding-left:18px}td.i2{padding-left:32px;color:#555}td.i3{padding-left:46px;color:var(--muted);font-size:11px}
+tr:hover td{background:#fffdf5}
+.num{font-variant-numeric:tabular-nums}
+.neg{color:var(--red)}.pos{color:var(--green)}
+ 
+/* BRANCH TABS */
+.btabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.btab{padding:5px 13px;border-radius:4px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);font-family:inherit;transition:.15s}
+.btab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+ 
+/* PROGRESS OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(28,43,74,.7);display:flex;align-items:center;justify-content:center;z-index:999;display:none}
+.overlay.show{display:flex}
+.overlay-box{background:#fff;border-radius:12px;padding:28px 36px;text-align:center;min-width:280px}
+.overlay-ico{font-size:36px;margin-bottom:12px}
+.overlay-t{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.overlay-s{font-size:12px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--bg2);border-top-color:var(--gold2);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+ 
+<header>
+  <span style="font-size:22px">📊</span>
+  <h1>分院會計月報合併系統</h1>
+  <span>榮民醫療作業基金｜三院合併月報產生器</span>
+</header>
+ 
+<div class="wrap">
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <div class="pblock">
+      <div class="plabel">上傳分院月報</div>
+      <div class="drop" id="dz" onclick="document.getElementById('fi').click()">
+        <div class="drop-ico">📂</div>
+        <div class="drop-txt"><b>點擊上傳</b>或拖曳 .xls 至此<br>可同時選取多個檔案</div>
+      </div>
+      <input type="file" id="fi" accept=".xls,.xlsx" multiple>
+      <div class="flist" id="flist"></div>
+      <div class="log" id="log"></div>
+    </div>
+ 
+    <div class="pblock">
+      <div class="plabel">合併設定</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+        自動偵測分院名稱與期間<br>
+        合併規則：數字加總、%重新計算、文字保留
+      </div>
+      <div class="gap6">
+        <button class="btn btn-navy" id="mergeBtn" onclick="doMerge()" disabled>⚡ 產生合併月報</button>
+      </div>
+    </div>
+ 
+    <div class="pblock">
+      <div class="plabel">匯出</div>
+      <div class="gap6">
+        <button class="btn btn-gold" id="dlBtn" onclick="doExport()" disabled>⬇ 下載合併月報 Excel</button>
+        <div style="font-size:11px;color:var(--muted);text-align:center">包含所有共通工作表</div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- MAIN -->
+  <div class="main">
+    <div class="tabs">
+      <div class="tab on" onclick="switchTab('sum',this)">加總總覽</div>
+      <div class="tab" onclick="switchTab('detail',this)">各分院明細</div>
+      <div class="tab" onclick="switchTab('sheets',this)">工作表清單</div>
+      <div class="tab-r" id="tabR"></div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty">
+        <div class="empty-ico">📋</div>
+        <div class="empty-t">尚未載入資料</div>
+        <div class="empty-s">請上傳三個分院的會計月報 .xls 檔案，再點擊「產生合併月報」</div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <div class="dot" id="dot"></div>
+      <span id="stxt">就緒</span>
+      <span style="margin-left:auto" id="srgt"></span>
+    </div>
+  </div>
+</div>
+ 
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <div class="overlay-t">合併處理中...</div>
+    <div class="overlay-s" id="ovMsg">正在讀取各分院資料</div>
+  </div>
+</div>
+ 
+<script>
+// ======= STATE =======
+let loaded = [];      // [{name, branch, period, wb}]
+let merged = {};      // sheetName -> mergedSheetData
+let curTab = 'sum';
+let curSheet = '收支';
+let curBranch = null;
+ 
+// 核心工作表（按重要性排序）
+const CORE = ['收支','平衡','業收','業外收','醫成','其他業成','管總','研發','業外費用','量值','各項費用','購建固資','固資檢核','代管資產檢核','資產明細表','負債明細表','信託代理與保證資產','遞延資產執行明細','關鍵資訊','關鍵資訊-照服員'];
+ 
+// 工作表別名對應（不同分院名稱不同，統一用標準名）
+const SHEET_ALIASES = {
+  '管總 ':'管總','研發 ':'研發','業外費用 ':'業外費用',
+  '代管資產檢核 ':'代管資產檢核','信託代理與保證資產 ':'信託代理與保證資產',
+  '購建固資 ':'購建固資','營運量值表':'量值',
+  '關鍵資訊-契僱人力-照服員':'關鍵資訊-照服員',
+  '關鍵資訊 -契僱人員-照服員':'關鍵資訊-照服員',
+};
+ 
+// ======= DRAG & DROP =======
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files)});
+document.getElementById('fi').addEventListener('change', e=>handleFiles(e.target.files));
+ 
+function handleFiles(files){
+  for(const f of files){
+    if(loaded.find(x=>x.name===f.name)) continue;
+    readFile(f);
+  }
+}
+ 
+function readFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const branch = getBranch(file.name, wb);
+      const period = getPeriod(wb);
+      loaded.push({name:file.name, branch, period, wb});
+      addLog(`✓ ${branch}`, 'ok');
+      renderFiles();
+      document.getElementById('mergeBtn').disabled = loaded.length < 1;
+      setStat(`已載入 ${loaded.length} 個分院`, 'ok');
+    } catch(err){
+      addLog(`✗ 讀取失敗：${file.name}`, 'er');
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+ 
+function getBranch(fname, wb){
+  try{
+    if(wb.SheetNames.includes('封面')){
+      const d = XLSX.utils.sheet_to_json(wb.Sheets['封面'],{header:1,defval:''});
+      for(const row of d) for(const c of row){
+        const s=String(c).trim();
+        if(s.includes('分院')&&s.length<35) return s.replace('臺北榮民總醫院作業基金－','').replace(/作業基金.*/,'');
+      }
+    }
+  }catch(e){}
+  return fname.split(/[-－_]/)[0].trim();
+}
+ 
+function getPeriod(wb){
+  try{
+    if(wb.SheetNames.includes('封面')){
+      const d = XLSX.utils.sheet_to_json(wb.Sheets['封面'],{header:1,defval:''});
+      for(const row of d) for(const c of row){
+        const s=String(c).trim();
+        if(/\d+年\d+月/.test(s)) return s;
+      }
+    }
+  }catch(e){}
+  return '';
+}
+ 
+function renderFiles(){
+  document.getElementById('flist').innerHTML = loaded.map((f,i)=>`
+    <div class="fchip">
+      <div style="flex:1;overflow:hidden">
+        <span class="fb">${f.branch}</span>
+        <span class="fn" title="${f.name}">${f.name}</span>
+      </div>
+      <button class="rm" onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+}
+ 
+function removeFile(i){
+  loaded.splice(i,1);
+  renderFiles();
+  document.getElementById('mergeBtn').disabled = loaded.length<1;
+}
+ 
+function addLog(msg, cls=''){
+  const el=document.getElementById('log');
+  el.innerHTML+=`<div class="${cls}">${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+ 
+// ======= MERGE =======
+async function doMerge(){
+  if(!loaded.length) return;
+  showOverlay(true,'正在讀取各分院資料...');
+  setStat('合併中...','run');
+  await sleep(50);
+ 
+  merged = {};
+ 
+  // 工作表別名（去除空格 + 名稱不同的對應）
+  const getNorm = (name) => {
+    const t = name.trim();
+    const aliases = {
+      '管總 ':'管總','研發 ':'研發','業外費用 ':'業外費用',
+      '代管資產檢核 ':'代管資產檢核','信託代理與保證資產 ':'信託代理與保證資產',
+      '購建固資 ':'購建固資','營運量值表':'量值',
+      '關鍵資訊-契僱人力-照服員':'關鍵資訊-照服員',
+      '關鍵資訊 -契僱人員-照服員':'關鍵資訊-照服員',
+    };
+    return aliases[t] || aliases[name] || t;
+  };
+ 
+  // 每個分院建立 normName -> 原始sheet名稱 的對應
+  const fileMaps = loaded.map(f => {
+    const map = {};
+    for(const s of f.wb.SheetNames){
+      const norm = getNorm(s);
+      if(!map[norm]) map[norm] = s;
+    }
+    return map;
+  });
+ 
+  // 找三院都有的工作表
+  let commonNorm = new Set(Object.keys(fileMaps[0]));
+  for(const m of fileMaps) commonNorm = new Set([...commonNorm].filter(s=>m[s]));
+ 
+  const exclude = new Set(['封面','目次','附件封面','附件目次','Sheet1','Sheet5',
+    '試算表-中榮','試算表-中榮本院','試算表-中榮馬蘭',
+    '固定資產-本院','固定資產-花榮','固定資產-台東','固定資產-蘇澳',
+    '代管資產-本院','代管資產-花榮','代管資產-台東','代管資產-蘇澳',
+    '資產','負債','資金存儲',
+    '資產明細表-中榮','負債明細表-中榮',
+    '收支-中榮','平衡-中榮','業收-中榮','業外收-中榮','醫成-中榮',
+    '其他業成-中榮','管總-中榮','研發-中榮','業外費用-中榮']);
+  const sheets = [...commonNorm].filter(s=>!exclude.has(s));
+ 
+  for(const normName of sheets){
+    setOvMsg(`合併：${normName}`);
+    await sleep(10);
+    try{ merged[normName] = mergeSheet(normName, fileMaps); }
+    catch(e){ console.warn(normName, e); }
+  }
+ 
+  showOverlay(false);
+  document.getElementById('dlBtn').disabled = false;
+  setStat(`合併完成｜${loaded.length}個分院、${Object.keys(merged).length}張工作表`,'ok');
+  document.getElementById('tabR').textContent = loaded.map(f=>f.branch).join(' + ') + '｜' + (loaded[0]?.period||'');
+ 
+  curSheet = merged['收支'] ? '收支' : Object.keys(merged)[0];
+  renderTab();
+}
+ 
+function mergeSheet(normName, fileMaps){
+  // 讀取各分院此工作表的資料（用fileMaps找到原始sheet名稱）
+  const branches = loaded.map((f, fi)=>{
+    const origName = fileMaps[fi][normName];
+    if(!origName) return {branch:f.branch, rows:[]};
+    const ws = f.wb.Sheets[origName];
+    const raw = XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+    return {branch:f.branch, rows:raw};
+  });
+ 
+  // 找標題列數（第一個有數值的列之前）
+  const firstRows = branches[0].rows;
+  let headerEnd = 0;
+  for(let r=0;r<Math.min(12,firstRows.length);r++){
+    const row=firstRows[r];
+    if(row.some(v=>typeof v==='number'&&Math.abs(v)>0)){ headerEnd=r; break; }
+  }
+ 
+  const headers = firstRows.slice(0, headerEnd);
+  const dataRows = branches[0].rows.slice(headerEnd);
+ 
+  // 決定科目欄數（前幾欄是空白就是科目層級）
+  let subjCols = 4;
+  if(firstRows[headerEnd]) {
+    // 找第一個非空的數值
+    const r = firstRows[headerEnd];
+    for(let c=0;c<r.length;c++){
+      if(typeof r[c]==='number'){subjCols=c;break;}
+    }
+  }
+ 
+  // 合併數字
+  const sumRows = dataRows.map((row, ri)=>{
+    const newRow = [...row];
+    for(let c=subjCols;c<row.length;c++){
+      const vals = branches.map(b=>{
+        const bRow = b.rows[headerEnd+ri];
+        if(!bRow) return 0;
+        const v = bRow[c];
+        return typeof v==='number' ? v : (parseFloat(String(v).replace(/,/g,''))||0);
+      });
+      const sum = vals.reduce((a,b)=>a+b,0);
+      newRow[c] = sum !== 0 ? sum : '';
+    }
+    return newRow;
+  });
+ 
+  // 重新計算百分比欄位（%欄位通常是「增減金額/預算數*100」）
+  // 找出哪些欄是%（通常值在-200到200之間且旁邊是金額欄）
+  const reCalcPct = (rows, sc) => {
+    // 對各組「實際數、預算數、比較增減金額、%」重新計算
+    // 欄結構：sc=法定預算, sc+1=實際, sc+2=預算, sc+3=增減金額, sc+4=%
+    //         sc+5=累計實際, sc+6=累計預算, sc+7=累計增減, sc+8=累計%
+    for(const row of rows){
+      // 本月份
+      if(row[sc+2]&&row[sc+2]!==''){
+        row[sc+3] = (row[sc+1]||0) - (row[sc+2]||0);
+        row[sc+4] = row[sc+2]!==0 ? Math.round(row[sc+3]/Math.abs(row[sc+2])*100*100)/100 : '';
+      }
+      // 累計
+      if(row[sc+6]&&row[sc+6]!==''){
+        row[sc+7] = (row[sc+5]||0) - (row[sc+6]||0);
+        row[sc+8] = row[sc+6]!==0 ? Math.round(row[sc+7]/Math.abs(row[sc+6])*100*100)/100 : '';
+      }
+    }
+    return rows;
+  };
+ 
+  // 科目型表（收支/業收/業外收/醫成/其他業成）重新算%
+  const pctSheets = new Set(['收支','業收','業外收','醫成','其他業成','管總','研發','業外費用']);
+  if(pctSheets.has(shName)) reCalcPct(sumRows, subjCols);
+ 
+  // 平衡表：重新計算%（資產%=金額/總資產*100）
+  if(shName==='平衡'){
+    // 找合計列取總資產
+    let totalAsset = 0;
+    for(const row of sumRows){
+      const subj = row.slice(0,4).map(v=>String(v).trim()).join('');
+      if(subj==='合計'){ totalAsset = row[4]||0; break; }
+    }
+    if(totalAsset>0){
+      for(const row of sumRows){
+        // 左半%（col5）
+        if(typeof row[4]==='number') row[5] = Math.round(row[4]/totalAsset*10000)/100;
+        // 右半%（col11）
+        if(typeof row[10]==='number') row[11] = Math.round(row[10]/totalAsset*10000)/100;
+      }
+    }
+  }
+ 
+  // 修改標題：分院名稱→合併版
+  const mergedBranchName = loaded.map(f=>f.branch).join('、');
+  const newHeaders = headers.map(row => row.map((cell,ci)=>{
+    const s = String(cell);
+    if(s.includes('分院')&&ci===0&&s.length<40) return s.replace(/臺北榮民總醫院作業基金－.+分院/, `臺北榮民總醫院作業基金－${mergedBranchName}合計`);
+    return cell;
+  }));
+ 
+  // 過濾底部文字說明（差異分析等）
+  const cleanRows = sumRows.filter((row,ri)=>{
+    const firstCell = String(row[0]||'').trim();
+    // 保留有數值的列或有意義的科目列
+    const hasNum = row.some(v=>typeof v==='number'&&v!==0);
+    const hasSubj = firstCell.length>0 && !/^[一二三四五]、/.test(firstCell) && !/截至本月/.test(firstCell) && !/差異分析/.test(firstCell) && !/較預計/.test(firstCell) && !/綜上/.test(firstCell) && !/主要係/.test(firstCell);
+    return hasNum || (hasSubj && firstCell.length<20);
+  });
+ 
+  return {
+    headers: newHeaders,
+    rows: cleanRows,
+    branches: branches.map(b=>({branch:b.branch, rows:b.rows.slice(headerEnd)})),
+    subjCols,
+    headerEnd
+  };
+}
+ 
+// ======= EXPORT =======
+function doExport(){
+  if(!Object.keys(merged).length) return;
+  setStat('匯出中...','run');
+ 
+  const wb = XLSX.utils.book_new();
+  const period = (loaded[0]?.period||'月報').replace(/[\/\\?*\[\]:]/g,'');
+ 
+  // 按CORE順序加入工作表
+  const sheetOrder = [...CORE.filter(s=>merged[s]), ...Object.keys(merged).filter(s=>!CORE.includes(s))];
+ 
+  for(const sh of sheetOrder){
+    const m = merged[sh];
+    if(!m) continue;
+ 
+    // 合計工作表
+    const aoa = [...m.headers, ...m.rows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    applyStyle(ws, m);
+    const safeName = sh.substring(0,31);
+    XLSX.utils.book_append_sheet(wb, ws, safeName);
+ 
+    // 各分院子工作表
+    for(const b of m.branches){
+      const baoa = [...m.headers, ...b.rows];
+      const bws = XLSX.utils.aoa_to_sheet(baoa);
+      const bName = `${sh}-${b.branch}`.substring(0,31);
+      XLSX.utils.book_append_sheet(wb, bws, bName);
+    }
+  }
+ 
+  XLSX.writeFile(wb, `三院合併月報_${period}.xlsx`);
+  setStat(`匯出完成：三院合併月報_${period}.xlsx`,'ok');
+}
+ 
+function applyStyle(ws, m){
+  // 設定欄寬
+  const range = XLSX.utils.decode_range(ws['!ref']||'A1');
+  ws['!cols'] = [];
+  for(let c=0;c<=range.e.c;c++){
+    ws['!cols'].push({wch: c < m.subjCols ? (c===0?28:12) : 16});
+  }
+}
+ 
+// ======= UI RENDER =======
+function switchTab(tab, el){
+  curTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderTab();
+}
+ 
+function renderTab(){
+  if(!Object.keys(merged).length) return;
+  if(curTab==='sum') renderSum();
+  else if(curTab==='detail') renderDetail();
+  else renderSheetList();
+}
+ 
+function sheetSwitcher(){
+  const sheets = [...CORE.filter(s=>merged[s]),...Object.keys(merged).filter(s=>!CORE.includes(s))];
+  return `<div class="btabs">${sheets.map(s=>`<button class="btab ${s===curSheet?'on':''}" onclick="curSheet='${s}';renderTab()">${s}</button>`).join('')}</div>`;
+}
+ 
+function renderSum(){
+  const m = merged[curSheet];
+  if(!m){document.getElementById('content').innerHTML='<div class="empty"><div>無資料</div></div>';return;}
+ 
+  // Key metrics cards for 收支
+  let cards='';
+  if(curSheet==='收支'){
+    const find=key=>{const r=m.rows.find(r=>r.slice(0,4).map(v=>String(v).trim()).join('')===key);return r?(typeof r[m.subjCols+1]==='number'?r[m.subjCols+1]:0):0;};
+    const inc=find('業務收入'),cost=find('業務成本與費用'),sur=find('本期賸餘（短絀）'),ext=find('業務外收入');
+    cards=`<div class="cards">
+      <div class="card hl"><div class="card-l">業務收入（本月實際）</div><div class="card-v">${fn(inc)}</div><div class="card-s">${loaded.length}院合計</div></div>
+      <div class="card"><div class="card-l">業務成本與費用</div><div class="card-v">${fn(cost)}</div><div class="card-s">本月實際數</div></div>
+      <div class="card"><div class="card-l">業務外收入</div><div class="card-v">${fn(ext)}</div><div class="card-s">本月實際數</div></div>
+      <div class="card ${sur<0?'':'hl'}"><div class="card-l">本期賸餘（短絀）</div><div class="card-v" style="color:${sur<0?'var(--red)':'var(--navy)'}">${fn(sur)}</div><div class="card-s">合計</div></div>
+    </div>`;
+  }
+ 
+  // Column headers
+  const lastHdr = m.headers[m.headers.length-1]||[];
+  const prevHdr = m.headers[m.headers.length-2]||[];
+  const prevHdr2 = m.headers.length>2?m.headers[m.headers.length-3]:[];
+  const colHdrs = [];
+  for(let c=m.subjCols;c<Math.max(lastHdr.length,14);c++){
+    const h = [String(prevHdr2[c]||''),String(prevHdr[c]||''),String(lastHdr[c]||'')].filter(Boolean).join('<br>');
+    colHdrs.push(h||`欄${c+1}`);
+  }
+ 
+  let tbody='';
+  for(const row of m.rows){
+    const subj = row.slice(0,m.subjCols).map(v=>String(v||'').trim()).filter(Boolean).join('');
+    if(!subj) continue;
+    const indent = getIndent(row,m.subjCols);
+    const nums = colHdrs.map((_,i)=>{
+      const v=row[m.subjCols+i];
+      if(v===''||v===null||v===undefined) return '<td class="num">-</td>';
+      const n=typeof v==='number'?v:parseFloat(v);
+      if(isNaN(n)||n===0) return '<td class="num">-</td>';
+      return `<td class="num ${n<0?'neg':''}">${fn(n)}</td>`;
+    }).join('');
+    tbody+=`<tr><td class="i${indent}">${subj}</td>${nums}</tr>`;
+  }
+ 
+  document.getElementById('content').innerHTML=`
+    ${cards}
+    ${sheetSwitcher()}
+    <div class="twrap">
+      <div class="thead-bar">
+        <span class="tt">${curSheet}（三院合計）</span>
+        <span class="ts">${loaded.map(f=>f.branch).join('、')}｜${loaded[0]?.period||''}</span>
+      </div>
+      <div class="tscroll"><table>
+        <thead><tr><th>科目</th>${colHdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${tbody}</tbody>
+      </table></div>
+    </div>`;
+}
+ 
+function renderDetail(){
+  const m = merged[curSheet];
+  if(!m){document.getElementById('content').innerHTML='<div class="empty"><div>無資料</div></div>';return;}
+  if(!curBranch||!m.branches.find(b=>b.branch===curBranch)) curBranch=m.branches[0]?.branch;
+ 
+  const lastHdr = m.headers[m.headers.length-1]||[];
+  const prevHdr = m.headers[m.headers.length-2]||[];
+  const prevHdr2 = m.headers.length>2?m.headers[m.headers.length-3]:[];
+  const colHdrs=[];
+  for(let c=m.subjCols;c<Math.max(lastHdr.length,14);c++){
+    const h=[String(prevHdr2[c]||''),String(prevHdr[c]||''),String(lastHdr[c]||'')].filter(Boolean).join('<br>');
+    colHdrs.push(h||`欄${c+1}`);
+  }
+ 
+  const branch = m.branches.find(b=>b.branch===curBranch);
+  const refRows = m.rows; // 用合計的科目順序
+ 
+  let tbody='';
+  for(let ri=0;ri<refRows.length;ri++){
+    const refRow=refRows[ri];
+    const subj=refRow.slice(0,m.subjCols).map(v=>String(v||'').trim()).filter(Boolean).join('');
+    if(!subj) continue;
+    const bRow=branch?.rows[ri]||[];
+    const indent=getIndent(refRow,m.subjCols);
+    const nums=colHdrs.map((_,i)=>{
+      const v=bRow[m.subjCols+i];
+      if(v===''||v===null||v===undefined) return '<td class="num">-</td>';
+      const n=typeof v==='number'?v:parseFloat(v);
+      if(isNaN(n)||n===0) return '<td class="num">-</td>';
+      return `<td class="num ${n<0?'neg':''}">${fn(n)}</td>`;
+    }).join('');
+    tbody+=`<tr><td class="i${indent}">${subj}</td>${nums}</tr>`;
+  }
+ 
+  const branchBtns = m.branches.map(b=>`<button class="btab ${b.branch===curBranch?'on':''}" onclick="curBranch='${b.branch}';renderTab()">${b.branch}</button>`).join('');
+ 
+  document.getElementById('content').innerHTML=`
+    ${sheetSwitcher()}
+    <div class="btabs">${branchBtns}</div>
+    <div class="twrap">
+      <div class="thead-bar">
+        <span class="tt">${curSheet}—${curBranch}</span>
+        <span class="ts">${loaded.find(f=>f.branch===curBranch)?.period||''}</span>
+      </div>
+      <div class="tscroll"><table>
+        <thead><tr><th>科目</th>${colHdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${tbody}</tbody>
+      </table></div>
+    </div>`;
+}
+ 
+function renderSheetList(){
+  const sheets = [...CORE.filter(s=>merged[s]),...Object.keys(merged).filter(s=>!CORE.includes(s))];
+  document.getElementById('content').innerHTML=`
+    <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+      ${sheets.map(s=>{
+        const m=merged[s];
+        const rows=m?m.rows.length:0;
+        const isCore=CORE.includes(s);
+        return `<div class="card ${isCore?'hl':''}" style="cursor:pointer" onclick="curSheet='${s}';switchTab('sum',document.querySelectorAll('.tab')[0])">
+          <div class="card-l">${isCore?'核心報表':'附件'}</div>
+          <div style="font-size:15px;font-weight:600;color:var(--navy);margin:4px 0">${s}</div>
+          <div class="card-s">${rows} 列資料</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+ 
+// ======= UTILS =======
+function getIndent(row,sc){
+  for(let c=sc-1;c>=0;c--) if(String(row[c]||'').trim()) return Math.min(c,3);
+  return 0;
+}
+ 
+function fn(n){
+  if(n===''||n===null||n===undefined) return '-';
+  if(typeof n!=='number') n=parseFloat(n);
+  if(isNaN(n)||n===0) return '-';
+  const abs=Math.abs(Math.round(n));
+  const s=abs.toLocaleString('zh-TW');
+  return n<0?`(${s})`:s;
+}
+ 
+function setStat(msg,type=''){
+  document.getElementById('stxt').textContent=msg;
+  const d=document.getElementById('dot');
+  d.className='dot'+(type==='ok'?' ok':type==='run'?' run':'');
+}
+ 
+function showOverlay(show,msg=''){
+  document.getElementById('overlay').classList.toggle('show',show);
+  if(msg) document.getElementById('ovMsg').textContent=msg;
+}
+function setOvMsg(msg){document.getElementById('ovMsg').textContent=msg;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+</script>
+</body>
+</html>
