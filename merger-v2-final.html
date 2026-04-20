@@ -394,28 +394,38 @@ function mergeOneSheet(normName, fileMaps) {
       // 判斷格式：玉里 col0全空(col1=摘要)，鳳林/臺東 col0=摘要
       const hasCol0 = rows.slice(6).some(r => String(r[0]||'').trim());
  
+      console.log('信託代理原始rows(玉里前10列):', rows.slice(6,16).map(r=>JSON.stringify(Array.from(r))));
       rows = rows.map((r, ri) => {
         let subj = String(r[0]||'').trim();
         const col1 = String(r[1]||'').trim();
         const col2 = r[2]; // 金額
         const col3 = String(r[3]||'').trim(); // 備註
  
+        // 判斷 col1 是否是數字字串（不應當作摘要）
+        const col1IsNum = col1 !== '' && !isNaN(parseFloat(col1)) && isFinite(col1);
+        // 實際金額：col2 優先，若 col2 空則嘗試 col1（數字字串）
+        let amt = typeof r[2]==='number' ? r[2] : (typeof r[2]==='string' && r[2]!=='' ? parseFloat(r[2]) : '');
+        if (isNaN(amt)) amt = '';
+ 
         if (!hasCol0) {
           // 玉里格式：col0全空
-          if (!subj && !col1 && typeof col2 === 'number') {
+          if (!subj && !col1 && typeof r[2]==='number') {
             subj = '信託代理與保證資產合計';
-          } else if (!subj && col1) {
+          } else if (!subj && col1IsNum && typeof r[2]==='number') {
+            // col1是數字字串，col2是金額 → 合計列
+            subj = '信託代理與保證資產合計';
+          } else if (!subj && col1 && !col1IsNum) {
             subj = col1;
           }
         } else {
           // 鳳林/臺東格式：col0=大類，col1=細項
-          if (!subj && col1) {
-            subj = col1; // 細項名稱從col1搬到col0
+          if (!subj && col1 && !col1IsNum) {
+            subj = col1;
           }
         }
-        // 備註：col3或col4（玉里備註在col4）
+        // 備註：col3或col4
         const note = col3 || (String(r[4]||'').trim());
-        return [subj, col2||'', note];
+        return [subj, amt, note];
       });
     }
  
