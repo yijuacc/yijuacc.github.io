@@ -846,14 +846,19 @@ function renderDeferredTable(m) {
   }
  
   // 合併成一張表：合計列在上，三院明細依序在下
-  let allTbody = '<tr style="font-weight:600;background:var(--bg2)"><td>合計</td>'+totalCells+'</tr>';
+  // 合計列在上，各院明細依序在下，跳過小計列
+  const SKIP_SUBJ = new Set(['小計','合計']);
+  let allTbody = '<tr style="font-weight:600;background:var(--bg2)"><td>三院合計</td>'+totalCells+'</tr>';
  
   for (const b of m.branches) {
+    // 分院標題列
+    allTbody += '<tr style="background:#f5f0e8"><td colspan="'+(colLabels.length+1)+'" style="font-size:11px;font-weight:600;color:var(--navy);padding:4px 9px">▶ '+b.branch+'</td></tr>';
     for (const row of b.rows) {
       const subj = String(row[0]||'').trim();
       const hasData = row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
       if (!subj && !hasData) continue;
       if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
+      if (SKIP_SUBJ.has(subj)) continue; // 跳過小計和合計
  
       const cells = colLabels.map((_, i) => {
         const v = row[i+1];
@@ -878,86 +883,105 @@ function renderDeferredTable(m) {
     +'<tbody>'+allTbody+'</tbody></table></div></div>';
 }
  
-// 信託代理與保證資產專用渲染（三院合計＋各院分開明細）
+// 信託代理與保證資產專用渲染
 function renderTrustTable(m) {
   const period = loaded[0]?.period || '';
   const branches = loaded.map(f=>f.branch).join('、');
  
-  // 計算三院合計（取各院第一個有金額的列作為該院合計）
+  // 大類名稱
+  const CATEGORIES = ['保管有價證券','保管品','保證品'];
+ 
+  // 從各院 b.rows 中找大類金額和各院小計
+  // b.rows 是重排後的3欄：[摘要, 金額, 備註]
+  const catTotals = {}; // 大類 -> 三院加總
+  const branchCatAmt = {}; // 大類 -> {分院名: 金額}
   let grandTotal = 0;
-  const branchTotals = m.branches.map(b => {
-    for (const row of b.rows) {
-      const amt = row[1];
-      if (typeof amt === 'number' && amt > 0) { grandTotal += amt; return amt; }
-    }
-    return 0;
+ 
+  CATEGORIES.forEach(cat => {
+    catTotals[cat] = 0;
+    branchCatAmt[cat] = {};
   });
  
-  // 三院合計列
-  let summaryHtml = '<div class="twrap" style="margin-bottom:12px">'
-    +'<div class="thead-bar"><span class="tt">信託代理與保證資產（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
-    +'<div class="tscroll"><table>'
-    +'<thead><tr><th>分院</th><th>合計金額（元）</th></tr></thead>'
-    +'<tbody>';
-  m.branches.forEach((b, i) => {
-    summaryHtml += '<tr><td>'+b.branch+'</td><td class="num">'+fn(branchTotals[i])+'</td></tr>';
-  });
-  summaryHtml += '<tr style="font-weight:600;background:var(--bg2)">'
-    +'<td>三院合計</td><td class="num">'+fn(grandTotal)+'</td></tr>';
-  summaryHtml += '</tbody></table></div></div>';
- 
-  // 各院明細
-  let detailHtml = '';
   for (const b of m.branches) {
-    let tbody = '';
+    // 找各院的大類金額（摘要完全符合大類名稱的列）
     for (const row of b.rows) {
       const subj = String(row[0]||'').trim();
       const amt = row[1];
-      const note = String(row[2]||'').trim();
-      if (!subj && (amt===''||amt===null||amt===undefined)) continue;
-      const displaySubj = subj || '（合計）';
-      const v = (typeof amt==='number') ? (amt===0?'-':fn(amt)) : '-';
-      tbody += '<tr>'
-        +'<td>'+displaySubj+'</td>'
-        +'<td class="num'+(typeof amt==='number'&&amt<0?' neg':'')+'">'+v+'</td>'
-        +'<td style="font-size:11px;color:var(--muted)">'+note+'</td>'
-        +'</tr>';
-    }
-    if (!tbody) continue;
-    detailHtml += '<div class="twrap" style="margin-bottom:12px">'
-      +'<div class="thead-bar"><span class="tt">信託代理與保證資產—'+b.branch+'</span><span class="ts">'+period+'</span></div>'
-      +'<div class="tscroll"><table>'
-      +'<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>'
-      +'<tbody>'+tbody+'</tbody></table></div></div>';
-  }
- 
-  // 合併成一張表：合計列在上，三院明細依序在下
-  let allTbody2 = '<tr style="font-weight:600;background:var(--bg2)">'
-    +'<td>三院合計</td><td class="num">'+fn(grandTotal)+'</td><td></td></tr>';
- 
-  for (const b of m.branches) {
-    allTbody2 += '<tr style="background:#f5f0e8"><td colspan="3" style="font-size:11px;font-weight:600;color:var(--navy);padding:4px 9px">▶ '+b.branch+'</td></tr>';
-    for (const row of b.rows) {
-      const subj = String(row[0]||'').trim();
-      const amt = row[1];
-      const note = String(row[2]||'').trim();
-      if (!subj && (amt===''||amt===null||amt===undefined)) continue;
-      const displaySubj = subj || '（合計）';
-      const v = (typeof amt==='number') ? (amt===0?'-':fn(amt)) : '-';
-      allTbody2 += '<tr>'
-        +'<td>'+displaySubj+'</td>'
-        +'<td class="num'+(typeof amt==='number'&&amt<0?' neg':'')+'">'+v+'</td>'
-        +'<td style="font-size:11px;color:var(--muted)">'+note+'</td>'
-        +'</tr>';
+      if (CATEGORIES.includes(subj) && typeof amt === 'number') {
+        catTotals[subj] += amt;
+        branchCatAmt[subj][b.branch] = (branchCatAmt[subj][b.branch]||0) + amt;
+      }
+      // 找合計列
+      if ((subj==='信託代理與保證資產合計'||subj==='信託代理與保證資產(負債)合計') && typeof amt==='number' && amt>0) {
+        // 各院合計直接從大類加總
+      }
     }
   }
+ 
+  // 計算總合計
+  CATEGORIES.forEach(cat => { grandTotal += catTotals[cat]; });
+ 
+  // 建立表格
+  let tbody = '';
+  // 總合計列
+  tbody += '<tr style="font-weight:600">'
+    +'<td>信託代理與保證資產(負債)合計</td>'
+    +'<td class="num">'+fn(grandTotal)+'</td>'
+    +'<td></td></tr>';
+ 
+  // 各大類
+  CATEGORIES.forEach(cat => {
+    const catAmt = catTotals[cat];
+    tbody += '<tr>'
+      +'<td class="i1">'+cat+'</td>'
+      +'<td class="num">'+fn(catAmt)+'</td>'
+      +'<td></td></tr>';
+ 
+    // 保管品和保證品下面列各院小計＋細項
+    if (cat === '保管品' || cat === '保證品') {
+      for (const b of m.branches) {
+        const bAmt = (branchCatAmt[cat]||{})[b.branch] || 0;
+        if (bAmt === 0) continue;
+        // 分院小計列
+        tbody += '<tr style="background:#f5f0e8">'
+          +'<td class="i2" style="font-weight:600">'+b.branch+'</td>'
+          +'<td class="num" style="font-weight:600">'+fn(bAmt)+'</td>'
+          +'<td></td></tr>';
+        // 該院該大類下的細項
+        for (const row of b.rows) {
+          const subj = String(row[0]||'').trim();
+          const amt = row[1];
+          const note = String(row[2]||'').trim();
+          if (!subj || CATEGORIES.includes(subj)) continue;
+          if (subj.includes('合計') || subj === '無') continue;
+          // 判斷此細項屬於哪個大類（在該大類之後、下一個大類之前）
+          // 簡化做法：只列有金額的細項
+          if (typeof amt !== 'number' || amt === 0) continue;
+          // 判斷是否屬於此大類（透過位置判斷）
+          // 找此細項在 b.rows 中的位置，看它在哪個大類之後
+          const rowIdx = b.rows.indexOf(row);
+          let belongCat = null;
+          for (let i = rowIdx-1; i >= 0; i--) {
+            const s = String(b.rows[i][0]||'').trim();
+            if (CATEGORIES.includes(s)) { belongCat = s; break; }
+          }
+          if (belongCat !== cat) continue;
+          tbody += '<tr>'
+            +'<td class="i3">'+subj+'</td>'
+            +'<td class="num">'+fn(amt)+'</td>'
+            +'<td style="font-size:11px;color:var(--muted)">'+note+'</td>'
+            +'</tr>';
+        }
+      }
+    }
+  });
  
   document.getElementById('content').innerHTML = sheetSwitcher()
     +'<div class="twrap">'
     +'<div class="thead-bar"><span class="tt">信託代理與保證資產（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
     +'<div class="tscroll"><table>'
     +'<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>'
-    +'<tbody>'+allTbody2+'</tbody></table></div></div>';
+    +'<tbody>'+tbody+'</tbody></table></div></div>';
 }
  
 // 平衡表專用渲染（上下分開：資產 + 負債及淨值）
