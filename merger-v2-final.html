@@ -853,7 +853,11 @@ function renderTrustTable(m) {
   const branchCatItems = {}; // cat -> [{branch, amt, items:[{subj,amt,note}]}]
   CATEGORIES.forEach(cat => { catTotals[cat] = 0; branchCatItems[cat] = []; });
  
-  console.log('信託代理 m.branches:', m.branches.map(b=>({branch:b.branch, rows:b.rows.slice(0,5)})));
+  console.log('信託代理 branches debug:');
+  for (const b of m.branches) {
+    console.log('  分院:', b.branch, '列數:', b.rows.length);
+    console.log('  前6列:', b.rows.slice(0,6));
+  }
   for (const b of m.branches) {
     CATEGORIES.forEach(cat => {
       // 找該院該大類的小計和細項
