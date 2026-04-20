@@ -1,6 +1,3 @@
-Merger v2 · HTML
-Copy
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -777,6 +774,7 @@ function renderBalance(m, cards) {
  
   let assetBody = '';
   let liabBody = '';
+  console.log('平衡表 m.rows 前5列:', m.rows.slice(0,5).map(r=>r.slice(0,12)));
  
   for (const row of m.rows) {
     // 資產側（col0-3有科目才顯示）
