@@ -400,15 +400,18 @@ function mergeOneSheet(normName, fileMaps) {
  
         for (let i = 0; i < r.length; i++) {
           const v = r[i];
-          if (typeof v === 'number' && !amtFound) {
-            amt = v;
+          const vStr = String(v ?? '').trim();
+          const vNum = typeof v === 'number' ? v : (vStr !== '' ? Number(vStr) : NaN);
+          const isNum = !isNaN(vNum) && vStr !== '';
+ 
+          if (isNum && !amtFound) {
+            amt = vNum;
             amtFound = true;
-          } else if (typeof v === 'string' && v.trim()) {
-            const s = v.trim();
-            if (!subj && isNaN(parseFloat(s))) {
-              subj = s;
-            } else if (amtFound && !note && isNaN(parseFloat(s))) {
-              note = s;
+          } else if (vStr && !isNum) {
+            if (!subj) {
+              subj = vStr;
+            } else if (amtFound && !note) {
+              note = vStr;
             }
           }
         }
@@ -1187,3 +1190,4 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
 </body>
 </html>
+ 
