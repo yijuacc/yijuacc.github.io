@@ -845,7 +845,37 @@ function renderDeferredTable(m) {
       +'<tbody>'+tbody+'</tbody></table></div></div>';
   }
  
-  document.getElementById('content').innerHTML = sheetSwitcher() + summaryHtml + detailHtml;
+  // 合併成一張表：合計列在上，三院明細依序在下
+  let allTbody = '<tr style="font-weight:600;background:var(--bg2)"><td>合計</td>'+totalCells+'</tr>';
+ 
+  for (const b of m.branches) {
+    for (const row of b.rows) {
+      const subj = String(row[0]||'').trim();
+      const hasData = row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
+      if (!subj && !hasData) continue;
+      if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
+ 
+      const cells = colLabels.map((_, i) => {
+        const v = row[i+1];
+        if (v===''||v===null||v===undefined) return '<td>-</td>';
+        if (typeof v==='number') {
+          if (v===0) return '<td class="num">-</td>';
+          if (i===5||i===7) return '<td class="num'+(v<0?' neg':'')+'">'+v.toFixed(2)+'</td>';
+          return '<td class="num'+(v<0?' neg':'')+'">'+fn(v)+'</td>';
+        }
+        return '<td style="font-size:11px;max-width:180px;word-break:break-all">'+String(v)+'</td>';
+      }).join('');
+ 
+      allTbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
+    }
+  }
+ 
+  document.getElementById('content').innerHTML = sheetSwitcher()
+    +'<div class="twrap">'
+    +'<div class="thead-bar"><span class="tt">遞延資產執行明細（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
+    +'<div class="tscroll"><table>'
+    +'<thead><tr><th>計畫名稱</th>'+colLabels.map(l=>'<th>'+l+'</th>').join('')+'</tr></thead>'
+    +'<tbody>'+allTbody+'</tbody></table></div></div>';
 }
  
 // 信託代理與保證資產專用渲染（三院合計＋各院分開明細）
@@ -901,7 +931,33 @@ function renderTrustTable(m) {
       +'<tbody>'+tbody+'</tbody></table></div></div>';
   }
  
-  document.getElementById('content').innerHTML = sheetSwitcher() + summaryHtml + detailHtml;
+  // 合併成一張表：合計列在上，三院明細依序在下
+  let allTbody2 = '<tr style="font-weight:600;background:var(--bg2)">'
+    +'<td>三院合計</td><td class="num">'+fn(grandTotal)+'</td><td></td></tr>';
+ 
+  for (const b of m.branches) {
+    allTbody2 += '<tr style="background:#f5f0e8"><td colspan="3" style="font-size:11px;font-weight:600;color:var(--navy);padding:4px 9px">▶ '+b.branch+'</td></tr>';
+    for (const row of b.rows) {
+      const subj = String(row[0]||'').trim();
+      const amt = row[1];
+      const note = String(row[2]||'').trim();
+      if (!subj && (amt===''||amt===null||amt===undefined)) continue;
+      const displaySubj = subj || '（合計）';
+      const v = (typeof amt==='number') ? (amt===0?'-':fn(amt)) : '-';
+      allTbody2 += '<tr>'
+        +'<td>'+displaySubj+'</td>'
+        +'<td class="num'+(typeof amt==='number'&&amt<0?' neg':'')+'">'+v+'</td>'
+        +'<td style="font-size:11px;color:var(--muted)">'+note+'</td>'
+        +'</tr>';
+    }
+  }
+ 
+  document.getElementById('content').innerHTML = sheetSwitcher()
+    +'<div class="twrap">'
+    +'<div class="thead-bar"><span class="tt">信託代理與保證資產（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
+    +'<div class="tscroll"><table>'
+    +'<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>'
+    +'<tbody>'+allTbody2+'</tbody></table></div></div>';
 }
  
 // 平衡表專用渲染（上下分開：資產 + 負債及淨值）
