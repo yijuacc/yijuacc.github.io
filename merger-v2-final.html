@@ -401,14 +401,16 @@ function mergeOneSheet(normName, fileMaps) {
         const col3 = String(r[3]||'').trim(); // 備註
  
         if (!hasCol0) {
-          // 玉里格式：col0空，col1=摘要，col2=金額
-          // 合計列：col0空,col1空,col2有金額 → 用「信託代理合計」
+          // 玉里格式：col0全空
           if (!subj && !col1 && typeof col2 === 'number') {
             subj = '信託代理與保證資產合計';
           } else if (!subj && col1) {
             subj = col1;
-          } else if (!subj) {
-            subj = '';
+          }
+        } else {
+          // 鳳林/臺東格式：col0=大類，col1=細項
+          if (!subj && col1) {
+            subj = col1; // 細項名稱從col1搬到col0
           }
         }
         return [subj, col2||'', col3];
@@ -859,6 +861,9 @@ function renderDeferredTable(m) {
       if (!subj && !hasData) continue;
       if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
       if (SKIP_SUBJ.has(subj)) continue; // 跳過小計和合計
+      // 跳過分組標題列（未完工部分、已完工部分、其他等純文字列）
+      const onlyText = !row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
+      if (onlyText && subj && !subj.includes('分院')) continue;
  
       const cells = colLabels.map((_, i) => {
         const v = row[i+1];
@@ -887,98 +892,80 @@ function renderDeferredTable(m) {
 function renderTrustTable(m) {
   const period = loaded[0]?.period || '';
   const branches = loaded.map(f=>f.branch).join('、');
- 
-  // 大類名稱
   const CATEGORIES = ['保管有價證券','保管品','保證品'];
  
-  // 從各院 b.rows 中找大類金額和各院小計
-  // b.rows 是重排後的3欄：[摘要, 金額, 備註]
-  const catTotals = {}; // 大類 -> 三院加總
-  const branchCatAmt = {}; // 大類 -> {分院名: 金額}
-  let grandTotal = 0;
- 
-  CATEGORIES.forEach(cat => {
-    catTotals[cat] = 0;
-    branchCatAmt[cat] = {};
-  });
+  // 計算各大類三院加總 & 各院在各大類的小計
+  const catTotals = {};
+  const branchCatItems = {}; // cat -> [{branch, amt, items:[{subj,amt,note}]}]
+  CATEGORIES.forEach(cat => { catTotals[cat] = 0; branchCatItems[cat] = []; });
  
   for (const b of m.branches) {
-    // 找各院的大類金額（摘要完全符合大類名稱的列）
-    for (const row of b.rows) {
-      const subj = String(row[0]||'').trim();
-      const amt = row[1];
-      if (CATEGORIES.includes(subj) && typeof amt === 'number') {
-        catTotals[subj] += amt;
-        branchCatAmt[subj][b.branch] = (branchCatAmt[subj][b.branch]||0) + amt;
+    CATEGORIES.forEach(cat => {
+      // 找該院該大類的小計和細項
+      let catAmt = null;
+      const items = [];
+      let inCat = false;
+      for (const row of b.rows) {
+        const subj = String(row[0]||'').trim();
+        const amt = row[1];
+        const note = String(row[2]||'').trim();
+        if (CATEGORIES.includes(subj)) {
+          inCat = (subj === cat);
+          if (inCat) catAmt = typeof amt==='number' ? amt : 0;
+          continue;
+        }
+        if (inCat) {
+          // 在此大類下的細項
+          if (subj && !subj.includes('合計')) {
+            items.push({subj, amt: typeof amt==='number'?amt:0, note});
+          }
+        }
       }
-      // 找合計列
-      if ((subj==='信託代理與保證資產合計'||subj==='信託代理與保證資產(負債)合計') && typeof amt==='number' && amt>0) {
-        // 各院合計直接從大類加總
+      // catAmt 若為 null 但有細項，則加總細項
+      if (catAmt === null && items.length > 0) {
+        catAmt = items.reduce((s,i)=>s+i.amt, 0);
       }
-    }
+      if (catAmt === null) catAmt = 0;
+      catTotals[cat] += catAmt;
+      branchCatItems[cat].push({branch: b.branch, amt: catAmt, items});
+    });
   }
  
   // 計算總合計
-  CATEGORIES.forEach(cat => { grandTotal += catTotals[cat]; });
+  const grandTotal = CATEGORIES.reduce((s,c)=>s+catTotals[c], 0);
  
   // 建立表格
   let tbody = '';
-  // 總合計列
-  tbody += '<tr style="font-weight:600">'
-    +'<td>信託代理與保證資產(負債)合計</td>'
-    +'<td class="num">'+fn(grandTotal)+'</td>'
-    +'<td></td></tr>';
  
-  // 各大類
+  // 總合計列
+  tbody += '<tr style="font-weight:700"><td>信託代理與保證資產(負債)合計</td>'
+    +'<td class="num">'+fn(grandTotal)+'</td><td></td></tr>';
+ 
   CATEGORIES.forEach(cat => {
-    const catAmt = catTotals[cat];
-    tbody += '<tr>'
-      +'<td class="i1">'+cat+'</td>'
-      +'<td class="num">'+fn(catAmt)+'</td>'
+    // 大類合計列
+    tbody += '<tr><td class="i1" style="font-weight:600">'+cat+'</td>'
+      +'<td class="num" style="font-weight:600">'+fn(catTotals[cat])+'</td>'
       +'<td></td></tr>';
  
-    // 保管品和保證品下面列各院小計＋細項
-    if (cat === '保管品' || cat === '保證品') {
-      for (const b of m.branches) {
-        const bAmt = (branchCatAmt[cat]||{})[b.branch] || 0;
-        if (bAmt === 0) continue;
-        // 分院小計列
-        tbody += '<tr style="background:#f5f0e8">'
-          +'<td class="i2" style="font-weight:600">'+b.branch+'</td>'
-          +'<td class="num" style="font-weight:600">'+fn(bAmt)+'</td>'
-          +'<td></td></tr>';
-        // 該院該大類下的細項
-        for (const row of b.rows) {
-          const subj = String(row[0]||'').trim();
-          const amt = row[1];
-          const note = String(row[2]||'').trim();
-          if (!subj || CATEGORIES.includes(subj)) continue;
-          if (subj.includes('合計') || subj === '無') continue;
-          // 判斷此細項屬於哪個大類（在該大類之後、下一個大類之前）
-          // 簡化做法：只列有金額的細項
-          if (typeof amt !== 'number' || amt === 0) continue;
-          // 判斷是否屬於此大類（透過位置判斷）
-          // 找此細項在 b.rows 中的位置，看它在哪個大類之後
-          const rowIdx = b.rows.indexOf(row);
-          let belongCat = null;
-          for (let i = rowIdx-1; i >= 0; i--) {
-            const s = String(b.rows[i][0]||'').trim();
-            if (CATEGORIES.includes(s)) { belongCat = s; break; }
-          }
-          if (belongCat !== cat) continue;
-          tbody += '<tr>'
-            +'<td class="i3">'+subj+'</td>'
-            +'<td class="num">'+fn(amt)+'</td>'
-            +'<td style="font-size:11px;color:var(--muted)">'+note+'</td>'
-            +'</tr>';
-        }
+    // 各院小計 + 細項
+    for (const bData of branchCatItems[cat]) {
+      // 院小計列
+      tbody += '<tr style="background:#f5f0e8"><td class="i2" style="font-weight:600">'+bData.branch+'</td>'
+        +'<td class="num" style="font-weight:600">'+(bData.amt===0?'-':fn(bData.amt))+'</td>'
+        +'<td></td></tr>';
+      // 細項
+      for (const item of bData.items) {
+        tbody += '<tr><td class="i3">'+item.subj+'</td>'
+          +'<td class="num">'+(item.amt===0?'-':fn(item.amt))+'</td>'
+          +'<td style="font-size:11px;color:var(--muted)">'+item.note+'</td></tr>';
       }
     }
   });
  
   document.getElementById('content').innerHTML = sheetSwitcher()
     +'<div class="twrap">'
-    +'<div class="thead-bar"><span class="tt">信託代理與保證資產（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
+    +'<div class="thead-bar"><span class="tt">信託代理與保證資產（三院合計）</span>'
+    +'<span class="ts">'+branches+'｜'+period+'</span></div>'
     +'<div class="tscroll"><table>'
     +'<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>'
     +'<tbody>'+tbody+'</tbody></table></div></div>';
