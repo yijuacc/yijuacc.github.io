@@ -369,12 +369,16 @@ async function doMerge() {
 function mergeOneSheet(normName, fileMaps) {
   // 各工作表截斷欄位設定（必須在 branchData 之前宣告）
   const TRUNCATE_AT2 = {
+    // 收支類：只保留前13欄（去掉對應科目/檢查碼）
     '收支':13,'業收':13,'業外收':13,'醫成':13,'其他業成':13,'管總':13,'研發':13,'業外費用':13,
+    // 固資類：只保留前9欄
     '固資檢核':9,'代管資產檢核':9,
-    '遞延資產執行明細':11,
+    // 關鍵資訊：只保留3欄（項目/實際數/預算數）
     '關鍵資訊':3,
+    // 購建固資：只保留前13欄
     '購建固資':13,
-    '平衡':12,
+    // 遞延資產執行明細：保留全部11欄（含差異原因col9和改進措施col10）
+    // 信託代理：不截斷（統一重排為3欄）
   };
   const truncateCols2 = TRUNCATE_AT2[normName] || null;
  
@@ -385,23 +389,30 @@ function mergeOneSheet(normName, fileMaps) {
     const ws = f.wb.Sheets[origName];
     let rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
  
-    // 信託代理與保證資產：玉里格式不同（col0空,col1=摘要），統一轉換
+    // 信託代理與保證資產：統一格式
     if (normName === '信託代理與保證資產') {
-      // 檢查是否為玉里格式（col0全空，col1有內容）
+      // 判斷格式：玉里 col0全空(col1=摘要)，鳳林/臺東 col0=摘要
       const hasCol0 = rows.slice(6).some(r => String(r[0]||'').trim());
-      if (!hasCol0) {
-        // 玉里格式：col0空，把col1移到col0
-        rows = rows.map(r => {
-          const newRow = [...r];
-          if (!String(newRow[0]||'').trim() && String(newRow[1]||'').trim()) {
-            newRow[0] = newRow[1];
-            newRow[1] = '';
+ 
+      rows = rows.map((r, ri) => {
+        let subj = String(r[0]||'').trim();
+        const col1 = String(r[1]||'').trim();
+        const col2 = r[2]; // 金額
+        const col3 = String(r[3]||'').trim(); // 備註
+ 
+        if (!hasCol0) {
+          // 玉里格式：col0空，col1=摘要，col2=金額
+          // 合計列：col0空,col1空,col2有金額 → 用「信託代理合計」
+          if (!subj && !col1 && typeof col2 === 'number') {
+            subj = '信託代理與保證資產合計';
+          } else if (!subj && col1) {
+            subj = col1;
+          } else if (!subj) {
+            subj = '';
           }
-          return newRow;
-        });
-      }
-      // 只保留 col0(摘要), col2(金額), col3(備註) → 重排為3欄
-      rows = rows.map(r => [r[0]||'', r[2]||'', r[3]||'']);
+        }
+        return [subj, col2||'', col3];
+      });
     }
  
     // 截斷欄位
@@ -437,6 +448,21 @@ function mergeOneSheet(normName, fileMaps) {
       headerEnd = r;
       break;
     }
+  }
+ 
+  // 特殊表格：強制設定 headerEnd
+  const FORCED_HEADER = {
+    '遞延資產執行明細': 9,
+    '信託代理與保證資產': 6,
+    '購建固資': 9,
+    '固資檢核': 7,
+    '代管資產檢核': 7,
+    '關鍵資訊': 7,
+    '關鍵資訊-照服員': 5,
+    '各項費用': 9,
+  };
+  if (FORCED_HEADER[normName] !== undefined) {
+    headerEnd = FORCED_HEADER[normName];
   }
  
   // 找科目欄數（第一個數字的欄位）
@@ -528,13 +554,13 @@ function mergeOneSheet(normName, fileMaps) {
   }
  
   // 遞延資產執行明細：重新計算%
-  // col4=合計(1)，col5=累計執行，col6=%(2)/(1)，col7=增減，col8=%(3)/(1)
+  // subjCols=1, col1-4=預算, col4=合計(1), col5=累計執行金額, col6=%, col7=增減, col8=%
   if (normName === '遞延資產執行明細') {
     for (const row of sumRows) {
-      const base = row[4]; // 合計(1)
-      if (typeof base === 'number' && base !== 0) {
-        row[6] = typeof row[5]==='number' ? Math.round(row[5]/base*10000)/100 : '';
-        row[8] = typeof row[7]==='number' ? Math.round(row[7]/base*10000)/100 : '';
+      const base = typeof row[4]==='number' ? row[4] : 0;
+      if (base !== 0) {
+        if (typeof row[5]==='number') row[6] = Math.round(row[5]/base*10000)/100;
+        if (typeof row[7]==='number') row[8] = Math.round(row[7]/base*10000)/100;
       }
     }
   }
@@ -738,30 +764,80 @@ function renderCarerTable(m) {
     '<tbody>'+tbody+'</tbody></table></div></div>';
 }
  
-// 信託代理與保證資產專用渲染（重排後：col0=摘要, col1=金額, col2=備註）
-function renderTrustTable(m) {
-  const period = loaded[0]?.period || '';
-  const branches = loaded.map(f=>f.branch).join('、');
  
-  let tbody = '';
-  for (const row of m.rows) {
-    const subj = String(row[0]||'').trim();
-    if (!subj) continue;
-    const amt = row[1];
-    const note = String(row[2]||'').trim();
-    const v = (typeof amt==='number'&&amt!==0) ? fn(amt) : (amt===0?'-':'-');
-    tbody += '<tr><td>'+subj+'</td>'
-      +'<td class="num'+(amt<0?' neg':'')+'">'+v+'</td>'
-      +'<td style="font-size:11px;color:var(--muted)">'+note+'</td></tr>';
+// 遞延資產執行明細專用渲染（各院分開，含文字欄）
+function renderDeferredTable(m) {
+  const period = loaded[0]?.period || '';
+ 
+  // 欄位標題（手動設定正確名稱）
+  const colLabels = [
+    '以前年度保留數','本年度法定預算數','本年度奉准先行辦理數','合計(1)',
+    '累計執行金額','執行率%(2)/(1)','比較增減金額(3)=(2)-(1)','比較增減%(3)/(1)',
+    '差異或尚未完工原因','改進措施'
+  ];
+ 
+  let html = sheetSwitcher();
+ 
+  for (const b of m.branches) {
+    let tbody = '';
+    for (const row of b.rows) {
+      const subj = String(row[0]||'').trim();
+      const hasData = row.slice(1).some(v => v!==''&&v!==null&&v!==undefined&&v!==0);
+      if (!subj && !hasData) continue;
+ 
+      const cells = colLabels.map((_, i) => {
+        const v = row[i+1]; // subjCols=1，從col1開始
+        if (v===''||v===null||v===undefined) return '<td>-</td>';
+        if (typeof v === 'number') {
+          if (v === 0) return '<td class="num">-</td>';
+          return '<td class="num'+(v<0?' neg':'')+'">'+fn(v)+'</td>';
+        }
+        // 文字欄
+        return '<td style="font-size:11px;max-width:200px;word-break:break-all">'+String(v)+'</td>';
+      }).join('');
+ 
+      tbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
+    }
+ 
+    html += '<div class="twrap" style="margin-bottom:12px">'
+      +'<div class="thead-bar"><span class="tt">遞延資產執行明細—'+b.branch+'</span><span class="ts">'+period+'</span></div>'
+      +'<div class="tscroll"><table>'
+      +'<thead><tr><th>計畫名稱</th>'+colLabels.map(l=>'<th>'+l+'</th>').join('')+'</tr></thead>'
+      +'<tbody>'+tbody+'</tbody></table></div></div>';
   }
  
-  document.getElementById('content').innerHTML =
-    sheetSwitcher() +
-    '<div class="twrap">' +
-    '<div class="thead-bar"><span class="tt">'+curSheet+'（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>' +
-    '<div class="tscroll"><table>' +
-    '<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>' +
-    '<tbody>'+tbody+'</tbody></table></div></div>';
+  document.getElementById('content').innerHTML = html;
+}
+ 
+// 信託代理與保證資產專用渲染（各院分開列示）
+function renderTrustTable(m) {
+  const period = loaded[0]?.period || '';
+ 
+  let html = sheetSwitcher();
+ 
+  // 各院分開顯示
+  for (const b of m.branches) {
+    let tbody = '';
+    for (const row of b.rows) {
+      const subj = String(row[0]||'').trim();
+      const amt = row[1];
+      const note = String(row[2]||'').trim();
+      if (!subj && (amt===''||amt===null||amt===undefined)) continue;
+      const displaySubj = subj || (typeof amt==='number'&&amt!==0 ? '（合計）' : '');
+      if (!displaySubj) continue;
+      const v = (typeof amt==='number'&&amt!==0) ? fn(amt) : '-';
+      tbody += '<tr><td>'+displaySubj+'</td>'
+        +'<td class="num'+(amt<0?' neg':'')+'">'+v+'</td>'
+        +'<td style="font-size:11px;color:var(--muted)">'+note+'</td></tr>';
+    }
+    html += '<div class="twrap" style="margin-bottom:12px">'
+      +'<div class="thead-bar"><span class="tt">'+curSheet+'—'+b.branch+'</span><span class="ts">'+period+'</span></div>'
+      +'<div class="tscroll"><table>'
+      +'<thead><tr><th>摘要</th><th>金額（元）</th><th>備註</th></tr></thead>'
+      +'<tbody>'+tbody+'</tbody></table></div></div>';
+  }
+ 
+  document.getElementById('content').innerHTML = html;
 }
  
 // 平衡表專用渲染（上下分開：資產 + 負債及淨值）
@@ -774,7 +850,6 @@ function renderBalance(m, cards) {
  
   let assetBody = '';
   let liabBody = '';
-  console.log('平衡表 m.rows 前5列:', m.rows.slice(0,5).map(r=>r.slice(0,12)));
  
   for (const row of m.rows) {
     // 資產側（col0-3有科目才顯示）
@@ -843,6 +918,12 @@ function renderSum() {
   // 關鍵資訊-照服員特殊處理（3欄全是數值，無科目欄）
   if (curSheet === '關鍵資訊-照服員') {
     renderCarerTable(m);
+    return;
+  }
+ 
+  // 遞延資產執行明細特殊處理（含文字欄：差異原因col9、改進措施col10）
+  if (curSheet === '遞延資產執行明細') {
+    renderDeferredTable(m);
     return;
   }
  
