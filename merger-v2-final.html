@@ -413,7 +413,9 @@ function mergeOneSheet(normName, fileMaps) {
             subj = col1; // 細項名稱從col1搬到col0
           }
         }
-        return [subj, col2||'', col3];
+        // 備註：col3或col4（玉里備註在col4）
+        const note = col3 || (String(r[4]||'').trim());
+        return [subj, col2||'', note];
       });
     }
  
@@ -772,99 +774,51 @@ function renderDeferredTable(m) {
     '累計執行金額','執行率%(2)/(1)','比較增減金額(3)=(2)-(1)','比較增減%(3)/(1)',
     '差異或尚未完工原因','改進措施'
   ];
-  const NUM_COLS = [0,1,2,3,4,6]; // 數字欄位的 index（不含%欄）
   const SKIP_WORDS = ['註:','1.','2.','3.','4.','5.'];
+  const SKIP_SUBJ = new Set(['小計','合計']);
  
   // 計算三院合計（找各院的「合計」列加總）
   const totalRow = new Array(10).fill('');
   for (const b of m.branches) {
     for (const row of b.rows) {
-      const subj = String(row[0]||'').trim();
-      if (subj === '合計') {
+      if (String(row[0]||'').trim() === '合計') {
         for (let i = 0; i < 9; i++) {
           const v = row[i+1];
-          if (typeof v === 'number') {
-            totalRow[i] = (totalRow[i] || 0) + v;
-          }
+          if (typeof v === 'number') totalRow[i] = (totalRow[i]||0) + v;
         }
         break;
       }
     }
   }
-  // 重新計算%
   if (totalRow[3] && totalRow[3] !== 0) {
-    totalRow[5] = Math.round((totalRow[4]||0) / totalRow[3] * 10000) / 100;
-    totalRow[7] = Math.round((totalRow[6]||0) / totalRow[3] * 10000) / 100;
+    totalRow[5] = Math.round((totalRow[4]||0)/totalRow[3]*10000)/100;
+    totalRow[7] = Math.round((totalRow[6]||0)/totalRow[3]*10000)/100;
   }
  
-  // 三院合計列
-  const totalCells = colLabels.map((_, i) => {
+  const totalCells = colLabels.map((_,i) => {
     const v = totalRow[i];
-    if (!v && v !== 0) return '<td>-</td>';
-    if (typeof v === 'number') {
-      if (v === 0) return '<td class="num">-</td>';
+    if (v===''||v===null||v===undefined) return '<td>-</td>';
+    if (typeof v==='number') {
+      if (v===0) return '<td class="num">-</td>';
       if (i===5||i===7) return '<td class="num'+(v<0?' neg':'')+'">'+v.toFixed(2)+'</td>';
       return '<td class="num'+(v<0?' neg':'')+'">'+fn(v)+'</td>';
     }
     return '<td>-</td>';
   }).join('');
  
-  let summaryHtml = '<div class="twrap" style="margin-bottom:12px">'
-    +'<div class="thead-bar"><span class="tt">遞延資產執行明細（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
-    +'<div class="tscroll"><table>'
-    +'<thead><tr><th>計畫名稱</th>'+colLabels.map(l=>'<th>'+l+'</th>').join('')+'</tr></thead>'
-    +'<tbody><tr style="font-weight:600"><td>合計</td>'+totalCells+'</tr></tbody>'
-    +'</table></div></div>';
- 
-  // 各院明細
-  let detailHtml = '';
+  // 各院明細全部列出（不顯示分院標題，合計在最底部）
+  let tbody = '';
   for (const b of m.branches) {
-    let tbody = '';
-    for (const row of b.rows) {
-      const subj = String(row[0]||'').trim();
-      const hasData = row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
-      if (!subj && !hasData) continue;
-      if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
- 
-      const cells = colLabels.map((_, i) => {
-        const v = row[i+1];
-        if (v===''||v===null||v===undefined) return '<td>-</td>';
-        if (typeof v==='number') {
-          if (v===0) return '<td class="num">-</td>';
-          if (i===5||i===7) return '<td class="num'+(v<0?' neg':'')+'">'+v.toFixed(2)+'</td>';
-          return '<td class="num'+(v<0?' neg':'')+'">'+fn(v)+'</td>';
-        }
-        return '<td style="font-size:11px;max-width:180px;word-break:break-all">'+String(v)+'</td>';
-      }).join('');
- 
-      tbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
-    }
-    if (!tbody) continue;
-    detailHtml += '<div class="twrap" style="margin-bottom:12px">'
-      +'<div class="thead-bar"><span class="tt">遞延資產執行明細—'+b.branch+'</span><span class="ts">'+period+'</span></div>'
-      +'<div class="tscroll"><table>'
-      +'<thead><tr><th>計畫名稱</th>'+colLabels.map(l=>'<th>'+l+'</th>').join('')+'</tr></thead>'
-      +'<tbody>'+tbody+'</tbody></table></div></div>';
-  }
- 
-  // 合併成一張表：合計列在上，三院明細依序在下
-  // 各院明細依序在下，合計列在最底部
-  const SKIP_SUBJ = new Set(['小計','合計']);
-  let allTbody = '';
- 
-  for (const b of m.branches) {
-    // 不顯示分院標題列，直接列出明細
     for (const row of b.rows) {
       const subj = String(row[0]||'').trim();
       const hasData = row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
       if (!subj && !hasData) continue;
       if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
       if (SKIP_SUBJ.has(subj)) continue;
-      // 跳過純文字列（未完工部分、已完工部分、其他等）
-      const onlyText = !row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
-      if (onlyText && subj) continue;
+      // 跳過純文字列（沒有數字資料的列）
+      if (!hasData && subj) continue;
  
-      const cells = colLabels.map((_, i) => {
+      const cells = colLabels.map((_,i) => {
         const v = row[i+1];
         if (v===''||v===null||v===undefined) return '<td>-</td>';
         if (typeof v==='number') {
@@ -874,23 +828,21 @@ function renderDeferredTable(m) {
         }
         return '<td style="font-size:11px;max-width:180px;word-break:break-all">'+String(v)+'</td>';
       }).join('');
- 
-      allTbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
+      tbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
     }
   }
  
-  // 合計列放在最底部
-  allTbody += '<tr style="font-weight:600;background:var(--bg2)"><td>合計</td>'+totalCells+'</tr>';
+  // 合計列在最底部
+  tbody += '<tr style="font-weight:600;background:var(--bg2)"><td>合計</td>'+totalCells+'</tr>';
  
   document.getElementById('content').innerHTML = sheetSwitcher()
     +'<div class="twrap">'
     +'<div class="thead-bar"><span class="tt">遞延資產執行明細（三院合計）</span><span class="ts">'+branches+'｜'+period+'</span></div>'
     +'<div class="tscroll"><table>'
     +'<thead><tr><th>計畫名稱</th>'+colLabels.map(l=>'<th>'+l+'</th>').join('')+'</tr></thead>'
-    +'<tbody>'+allTbody+'</tbody></table></div></div>';
+    +'<tbody>'+tbody+'</tbody></table></div></div>';
 }
  
-// 信託代理與保證資產專用渲染
 function renderTrustTable(m) {
   const period = loaded[0]?.period || '';
   const branches = loaded.map(f=>f.branch).join('、');
@@ -901,6 +853,7 @@ function renderTrustTable(m) {
   const branchCatItems = {}; // cat -> [{branch, amt, items:[{subj,amt,note}]}]
   CATEGORIES.forEach(cat => { catTotals[cat] = 0; branchCatItems[cat] = []; });
  
+  console.log('信託代理 m.branches:', m.branches.map(b=>({branch:b.branch, rows:b.rows.slice(0,5)})));
   for (const b of m.branches) {
     CATEGORIES.forEach(cat => {
       // 找該院該大類的小計和細項
