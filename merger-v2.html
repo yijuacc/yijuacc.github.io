@@ -1,3 +1,6 @@
+Merger v2 · HTML
+Copy
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -374,6 +377,7 @@ function mergeOneSheet(normName, fileMaps) {
     '遞延資產執行明細':11,
     '關鍵資訊':3,
     '購建固資':13,
+    '平衡':12,
   };
   const truncateCols2 = TRUNCATE_AT2[normName] || null;
  
@@ -461,7 +465,9 @@ function mergeOneSheet(normName, fileMaps) {
     subjCols = FORCED_SUBJ_COLS[normName];
   }
  
-  const headers = firstRows.slice(0, headerEnd);
+  const headers = firstRows.slice(0, headerEnd).map(r =>
+    truncateCols2 ? r.slice(0, truncateCols2) : r
+  );
   const dataRows = firstRows.slice(headerEnd);
  
   // 購建固資：只加總可見列（Excel列隱藏的不加總）
@@ -477,19 +483,30 @@ function mergeOneSheet(normName, fileMaps) {
     const newRow = row.map((v, ci) => {
       if (ci < subjCols) return v; // 科目欄保留原值
       if (isHidden) return ''; // 隱藏列不加總
-      // 數字欄：三院加總
+      // 平衡表：col6-9 是負債科目文字欄，保留原始文字不加總
+      if (normName === '平衡' && ci >= 6 && ci <= 9) {
+        return row[ci]; // 保留原始文字
+      }
+ 
+      // 數字欄：三院加總；文字欄：保留第一個分院的值
       let total = 0;
-      let hasVal = false;
+      let hasNum = false;
+      let firstText = '';
       for (const b of branchData) {
         const bRow = b.rows[actualRowIdx];
         if (!bRow) continue;
-        // 對方分院同列也是隱藏則跳過
         if (normName === '購建固資' && b.visibleRows && !b.visibleRows.has(actualRowIdx)) continue;
         const val = bRow[ci];
-        const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/,/g,''));
-        if (!isNaN(n)) { total += n; hasVal = true; }
+        if (typeof val === 'number') {
+          total += val; hasNum = true;
+        } else {
+          const n = parseFloat(String(val).replace(/,/g,''));
+          if (!isNaN(n) && String(val).trim() !== '') { total += n; hasNum = true; }
+          else if (!firstText && String(val||'').trim()) firstText = String(val).trim();
+        }
       }
-      return hasVal ? total : '';
+      if (hasNum) return total;
+      return firstText || '';
     });
     return newRow;
   });
@@ -941,7 +958,8 @@ function buildColHdrs(headers, subjCols) {
   const prev = headers.length>1 ? headers[headers.length-2] : [];
   const prev2 = headers.length>2 ? headers[headers.length-3] : [];
   const result = [];
-  for (let c = subjCols; c < Math.max(last.length, 14); c++) {
+  // 只根據實際欄數決定，不設下限
+  for (let c = subjCols; c < last.length; c++) {
     const parts = [String(prev2[c]||''), String(prev[c]||''), String(last[c]||'')]
       .map(s=>s.trim().replace(/\n/g,' ')).filter(Boolean);
     result.push(parts.join('<br>') || ('欄'+(c+1)));
