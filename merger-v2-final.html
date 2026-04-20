@@ -848,22 +848,21 @@ function renderDeferredTable(m) {
   }
  
   // 合併成一張表：合計列在上，三院明細依序在下
-  // 合計列在上，各院明細依序在下，跳過小計列
+  // 各院明細依序在下，合計列在最底部
   const SKIP_SUBJ = new Set(['小計','合計']);
-  let allTbody = '<tr style="font-weight:600;background:var(--bg2)"><td>三院合計</td>'+totalCells+'</tr>';
+  let allTbody = '';
  
   for (const b of m.branches) {
-    // 分院標題列
-    allTbody += '<tr style="background:#f5f0e8"><td colspan="'+(colLabels.length+1)+'" style="font-size:11px;font-weight:600;color:var(--navy);padding:4px 9px">▶ '+b.branch+'</td></tr>';
+    // 不顯示分院標題列，直接列出明細
     for (const row of b.rows) {
       const subj = String(row[0]||'').trim();
       const hasData = row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
       if (!subj && !hasData) continue;
       if (SKIP_WORDS.some(w=>subj.startsWith(w))) continue;
-      if (SKIP_SUBJ.has(subj)) continue; // 跳過小計和合計
-      // 跳過分組標題列（未完工部分、已完工部分、其他等純文字列）
+      if (SKIP_SUBJ.has(subj)) continue;
+      // 跳過純文字列（未完工部分、已完工部分、其他等）
       const onlyText = !row.slice(1,9).some(v=>typeof v==='number'&&v!==0);
-      if (onlyText && subj && !subj.includes('分院')) continue;
+      if (onlyText && subj) continue;
  
       const cells = colLabels.map((_, i) => {
         const v = row[i+1];
@@ -879,6 +878,9 @@ function renderDeferredTable(m) {
       allTbody += '<tr><td style="max-width:180px;word-break:break-all">'+subj+'</td>'+cells+'</tr>';
     }
   }
+ 
+  // 合計列放在最底部
+  allTbody += '<tr style="font-weight:600;background:var(--bg2)"><td>合計</td>'+totalCells+'</tr>';
  
   document.getElementById('content').innerHTML = sheetSwitcher()
     +'<div class="twrap">'
