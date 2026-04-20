@@ -1,6 +1,3 @@
-
-Copy
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -655,7 +652,7 @@ function doExport() {
     const m = merged[normName];
     if (!m) continue;
  
-    // 合計工作表
+    // 只輸出合計工作表
     const aoa = [...m.headers, ...m.rows];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
  
@@ -667,14 +664,6 @@ function doExport() {
     }
  
     XLSX.utils.book_append_sheet(wb, ws, normName.substring(0, 31));
- 
-    // 各分院子工作表
-    for (const b of m.branches) {
-      const baoa = [...m.headers, ...b.rows];
-      const bws = XLSX.utils.aoa_to_sheet(baoa);
-      const bName = (normName + '-' + b.branch).substring(0, 31);
-      XLSX.utils.book_append_sheet(wb, bws, bName);
-    }
   }
  
   XLSX.writeFile(wb, '三院合併月報_' + period + '.xlsx');
