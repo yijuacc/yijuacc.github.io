@@ -1,3 +1,7 @@
+合併 v2 · HTML
+
+複製
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -367,6 +371,10 @@ async function doMerge() {
 }
  
 function mergeOneSheet(normName, fileMaps) {
+  // 收支類報表：只保留前13欄（必須在 branchData 之前宣告）
+  const TRUNCATE_AT2 = {'收支':13,'業收':13,'業外收':13,'醫成':13,'其他業成':13,'管總':13,'研發':13,'業外費用':13};
+  const truncateCols2 = TRUNCATE_AT2[normName] || null;
+ 
   // 讀取各分院原始資料
   const branchData = loaded.map((f, fi) => {
     const origName = fileMaps[fi][normName];
@@ -374,7 +382,7 @@ function mergeOneSheet(normName, fileMaps) {
     const ws = f.wb.Sheets[origName];
     let rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
     // 截斷欄位（收支類報表只保留前13欄）
-    if (truncateCols) rows = rows.map(r => r.slice(0, truncateCols));
+    if (truncateCols2) rows = rows.map(r => r.slice(0, truncateCols2));
  
     // 取得可見列的集合（!rows 資訊）
     let visibleRows = null;
@@ -394,10 +402,6 @@ function mergeOneSheet(normName, fileMaps) {
  
   const firstRows = branchData[0].rows;
   if (!firstRows || firstRows.length === 0) return null;
- 
-  // 收支類報表：只保留前13欄（col0-12），去掉對應科目/檢查碼等輔助欄
-  const TRUNCATE_AT = {'收支':13,'業收':13,'業外收':13,'醫成':13,'其他業成':13,'管總':13,'研發':13,'業外費用':13};
-  const truncateCols = TRUNCATE_AT[normName] || null;
  
   // 找標題結束列（第一列有數字的列）
   let headerEnd = 0;
