@@ -7,450 +7,287 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
+ 
 :root {
   --navy: #1c2340;
+  --navy2: #263055;
   --gold: #c9a84c;
   --gold-light: #e8c97a;
-  --paper: #f7f4ee;
-  --panel-bg: #ffffff;
-  --border: #e2ddd4;
-  --muted: #8a8070;
+  --paper: #f5f2ec;
+  --white: #ffffff;
+  --border: #d8d2c6;
+  --border2: #e8e2d8;
+  --muted: #7a7060;
+  --text: #1a1612;
+  --text2: #2e2820;
   --success: #2e7d5a;
   --danger: #a83232;
-  --text: #2a2520;
-  --sidebar-w: 320px;
+  --num-color: #1a3a6b;
+  --neg-color: #8b1a1a;
+  --formula-color: #2d5a1a;
+  --sidebar-w: 300px;
 }
-
+ 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  height: 100%;
-  font-family: 'Noto Serif TC', serif;
-  background: var(--paper);
-  color: var(--text);
-  overflow: hidden;
-}
-
-/* ── Layout ── */
-.app {
-  display: grid;
-  grid-template-rows: 52px 1fr;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  height: 100vh;
-}
-
-/* ── Top bar ── */
+html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(--paper); color: var(--text); overflow: hidden; }
+ 
+/* ── App Layout ── */
+.app { display: grid; grid-template-rows: 48px 1fr; grid-template-columns: var(--sidebar-w) 1fr; height: 100vh; }
+ 
+/* ── Topbar ── */
 .topbar {
-  grid-column: 1 / -1;
-  background: var(--navy);
-  display: flex;
-  align-items: center;
-  padding: 0 24px;
-  gap: 16px;
+  grid-column: 1/-1; background: var(--navy);
+  display: flex; align-items: center; padding: 0 20px; gap: 14px;
   border-bottom: 2px solid var(--gold);
 }
-.topbar-logo {
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  color: var(--gold);
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-}
-.topbar-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
-  letter-spacing: 0.06em;
-}
-.topbar-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
-.topbar-year {
-  margin-left: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.68rem;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 0.1em;
-}
-
+.topbar-logo { font-size: 0.65rem; letter-spacing: 0.2em; color: var(--gold); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+.topbar-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.12); }
+.topbar-title { font-size: 0.9rem; font-weight: 600; color: #fff; letter-spacing: 0.06em; }
+.topbar-year { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.35); letter-spacing: 0.1em; }
+ 
 /* ── Sidebar ── */
 .sidebar {
-  background: var(--panel-bg);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 28px 24px 32px;
-  gap: 0;
+  background: var(--white); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto;
+  padding: 24px 20px 28px;
 }
-
-.step-block { padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+ 
+.step-block { padding-bottom: 22px; border-bottom: 1px solid var(--border2); margin-bottom: 22px; }
 .step-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-
-.step-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
+ 
+.step-label { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .step-num {
-  width: 22px; height: 22px;
-  background: var(--navy);
-  color: var(--gold);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  font-weight: 600;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  width: 20px; height: 20px; background: var(--navy); color: var(--gold);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.step-title {
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: var(--navy);
-  text-transform: uppercase;
-}
-
+.step-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; color: var(--navy); text-transform: uppercase; }
+ 
 /* Drop zone */
 .drop-zone {
-  border: 2px dashed var(--border);
-  border-radius: 2px;
-  padding: 28px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--paper);
-  position: relative;
+  border: 2px dashed var(--border); padding: 24px 12px;
+  text-align: center; cursor: pointer; transition: all 0.2s;
+  background: var(--paper); position: relative; border-radius: 2px;
 }
-.drop-zone:hover, .drop-zone.dragover {
-  border-color: var(--gold);
-  background: #fdf9f0;
-}
-.drop-zone input[type=file] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer;
-}
-.drop-icon { font-size: 2rem; display: block; margin-bottom: 10px; }
-.drop-main { font-size: 0.85rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
-.drop-sub { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
-
-/* File chips */
-.file-chips { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: #fdf8ee; }
+.drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; }
+.drop-main { font-size: 0.8rem; font-weight: 600; color: var(--navy); margin-bottom: 3px; }
+.drop-sub { font-size: 0.62rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+ 
+.file-chips { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
 .chip {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--paper); border: 1px solid var(--border);
-  padding: 7px 10px; font-size: 0.75rem;
-  animation: chipin 0.18s ease;
+  display: flex; align-items: center; gap: 7px;
+  background: var(--paper); border: 1px solid var(--border2); padding: 6px 9px;
+  animation: chipin 0.15s ease;
 }
-@keyframes chipin { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:none; } }
-.chip-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip-sheets { font-family: 'JetBrains Mono', monospace; font-size: 0.63rem; color: var(--muted); flex-shrink: 0; }
-.chip-rm {
-  background: none; border: none; cursor: pointer; color: var(--muted);
-  font-size: 0.9rem; line-height: 1; padding: 0 2px;
-  transition: color 0.15s;
-  flex-shrink: 0;
-}
+@keyframes chipin { from { opacity:0; transform:translateX(-5px); } to { opacity:1; transform:none; } }
+.chip-name { flex: 1; font-size: 0.72rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
+.chip-sheets { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--muted); flex-shrink: 0; }
+.chip-rm { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 0 2px; transition: color 0.15s; flex-shrink: 0; }
 .chip-rm:hover { color: var(--danger); }
-
+ 
 .upload-note {
-  margin-top: 10px; padding: 7px 10px;
-  font-size: 0.68rem; font-family: 'JetBrains Mono', monospace;
-  border: 1px solid var(--border); text-align: center; color: var(--muted);
+  margin-top: 8px; padding: 6px 9px; font-size: 0.62rem;
+  font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border2);
+  text-align: center; color: var(--muted);
 }
-.upload-note.ok { border-color: var(--success); color: var(--success); background: #f0f9f5; }
-.upload-note.warn { border-color: var(--gold); color: #7a6020; background: #fdf9ee; }
-
-/* Buttons */
+.upload-note.ok { border-color: var(--success); color: var(--success); background: #f0f9f4; }
+.upload-note.warn { border-color: var(--gold); color: #7a6020; background: #fdf8ee; }
+ 
 .btn-primary {
-  width: 100%;
-  background: var(--navy);
-  color: #fff;
-  border: none;
-  padding: 14px;
-  font-family: 'Noto Serif TC', serif;
-  font-size: 0.88rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: background 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; background: var(--navy); color: #fff; border: none;
+  padding: 13px; font-family: 'Noto Serif TC', serif;
+  font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em;
+  cursor: pointer; transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
 }
-.btn-primary:hover:not(:disabled) { background: #263055; }
+.btn-primary:hover:not(:disabled) { background: var(--navy2); }
 .btn-primary:disabled { background: #b8b0a4; cursor: not-allowed; }
-
+ 
 .btn-secondary {
-  width: 100%;
-  background: var(--gold);
-  color: var(--navy);
-  border: none;
-  padding: 13px;
-  font-family: 'Noto Serif TC', serif;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: background 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-top: 10px;
+  width: 100%; background: var(--gold); color: var(--navy); border: none;
+  padding: 12px; font-family: 'Noto Serif TC', serif;
+  font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em;
+  cursor: pointer; transition: background 0.2s; margin-top: 9px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
 }
 .btn-secondary:hover:not(:disabled) { background: var(--gold-light); }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.btn-note {
-  font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
-  text-align: center; margin-top: 6px; letter-spacing: 0.05em;
-}
-
-/* Progress mini */
-.progress-wrap { margin-top: 12px; display: none; }
+ 
+.btn-note { font-size: 0.6rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: center; margin-top: 5px; }
+ 
+.progress-wrap { margin-top: 10px; display: none; }
 .progress-wrap.active { display: block; }
-.progress-bar-bg { height: 3px; background: var(--border); overflow: hidden; }
+.progress-bar-bg { height: 3px; background: var(--border2); overflow: hidden; }
 .progress-bar-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
-.progress-text {
-  font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;
-  color: var(--muted); margin-top: 6px; line-height: 1.8;
-  max-height: 80px; overflow-y: auto;
-}
+.progress-text { font-size: 0.62rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin-top: 5px; line-height: 1.8; max-height: 80px; overflow-y: auto; }
 .progress-text .pl { display: block; }
 .progress-text .pl.ok { color: var(--success); }
 .progress-text .pl.err { color: var(--danger); }
-
+ 
 /* ── Right Panel ── */
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--paper);
-}
-
-/* Tab bar */
+.right-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--paper); }
+ 
 .tab-bar {
-  display: flex;
-  align-items: stretch;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  gap: 0;
-  flex-shrink: 0;
+  display: flex; align-items: stretch; background: var(--white);
+  border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0;
 }
 .tab {
-  padding: 14px 20px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-  white-space: nowrap;
-  user-select: none;
+  padding: 12px 18px; font-size: 0.74rem; font-weight: 600;
+  letter-spacing: 0.07em; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none;
 }
 .tab:hover { color: var(--navy); }
-.tab.active {
-  color: var(--navy);
-  border-bottom-color: var(--gold);
-}
-
-/* Tab content areas */
+.tab.active { color: var(--navy); border-bottom-color: var(--gold); }
+ 
 .tab-content { flex: 1; overflow: hidden; display: none; }
 .tab-content.active { display: flex; flex-direction: column; }
-
+ 
 /* Empty state */
 .empty-state {
   flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px;
-  color: var(--muted);
+  align-items: center; justify-content: center; gap: 10px; color: var(--muted);
 }
-.empty-icon { font-size: 3rem; opacity: 0.3; }
-.empty-text { font-size: 0.8rem; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; }
-
-/* Sheet selector + preview */
+.empty-icon { font-size: 2.5rem; opacity: 0.25; }
+.empty-text { font-size: 0.75rem; letter-spacing: 0.07em; font-family: 'JetBrains Mono', monospace; }
+ 
+/* Sheet nav strip */
 .sheet-nav {
-  display: flex; align-items: center; gap: 0;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border);
-  padding: 0 16px;
-  overflow-x: auto;
-  flex-shrink: 0;
+  display: flex; align-items: center; background: var(--white);
+  border-bottom: 1px solid var(--border); padding: 0 12px;
+  overflow-x: auto; flex-shrink: 0; gap: 0;
 }
 .sheet-nav::-webkit-scrollbar { height: 3px; }
 .sheet-nav::-webkit-scrollbar-thumb { background: var(--border); }
-
 .sheet-tab {
-  padding: 9px 14px;
-  font-size: 0.68rem;
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  transition: all 0.15s;
-  flex-shrink: 0;
+  padding: 8px 12px; font-size: 0.64rem; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
 }
 .sheet-tab:hover { color: var(--navy); }
-.sheet-tab.active {
-  color: var(--navy);
-  border-bottom-color: var(--gold);
-  font-weight: 600;
+.sheet-tab.active { color: var(--navy); border-bottom-color: var(--gold); font-weight: 600; }
+ 
+/* File selector in detail nav */
+.file-sel {
+  border: 1px solid var(--border2); padding: 4px 8px; font-size: 0.65rem;
+  font-family: 'JetBrains Mono', monospace; background: var(--white);
+  cursor: pointer; flex-shrink: 0; margin-right: 8px; color: var(--text2);
 }
-
-/* Table area */
-.table-wrap {
-  flex: 1; overflow: auto;
-  padding: 0;
-}
+ 
+/* ── THE TABLE ── */
+.table-wrap { flex: 1; overflow: auto; }
 .table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-.sheet-table {
+ 
+/* Main data table */
+.data-table {
   border-collapse: collapse;
   font-size: 0.72rem;
-  font-family: 'JetBrains Mono', monospace;
-  white-space: nowrap;
   min-width: 100%;
+  table-layout: fixed;
 }
-.sheet-table th {
+ 
+/* Column widths */
+.data-table .col-subject { width: 220px; }
+.data-table .col-amount  { width: 108px; }
+.data-table .col-pct     { width: 62px; }
+ 
+.data-table thead th {
   background: var(--navy);
-  color: rgba(255,255,255,0.7);
-  padding: 6px 12px;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.88);
+  padding: 7px 8px;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
   font-weight: 500;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: sticky; top: 0; z-index: 10;
   border-right: 1px solid rgba(255,255,255,0.08);
   text-align: center;
+  white-space: nowrap;
+  font-family: 'Noto Serif TC', serif;
 }
-.sheet-table td {
-  padding: 5px 12px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  max-width: 220px;
+.data-table thead th.col-subject { text-align: left; padding-left: 12px; }
+ 
+.data-table tbody td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border2);
+  border-right: 1px solid var(--border2);
+  color: var(--text);
+  vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: middle;
 }
-.sheet-table tr:hover td { background: #f7f2e8; }
-.sheet-table td.num { text-align: right; color: #2a4a80; }
-.sheet-table td.formula { text-align: right; color: #5a6e3a; font-style: italic; }
-.sheet-table td.row-head {
-  position: sticky; left: 0; z-index: 5;
-  background: #f0ece4;
-  color: var(--muted); font-size: 0.6rem;
-  text-align: center; border-right: 1px solid var(--border);
-  padding: 5px 8px; min-width: 36px;
+ 
+/* Subject cell with indent */
+.data-table td.subject {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 0.71rem;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.sheet-table tr:hover td.row-head { background: #e8e3d8; }
-
-/* Summary tab */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 16px;
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-.summary-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  padding: 16px 20px;
-}
-.summary-card-label {
-  font-size: 0.62rem; font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px;
-  text-transform: uppercase;
-}
-.summary-card-value {
-  font-size: 1.4rem; font-weight: 700; color: var(--navy); letter-spacing: -0.02em;
-}
-.summary-card-sub {
-  font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
-  margin-top: 4px;
-}
-
-/* Detail tab */
-.detail-table-wrap { flex: 1; overflow: auto; padding: 0; }
-.detail-table {
-  width: 100%; border-collapse: collapse;
-  font-size: 0.73rem; font-family: 'JetBrains Mono', monospace;
-}
-.detail-table th {
-  background: var(--navy); color: rgba(255,255,255,0.8);
-  padding: 8px 16px; font-size: 0.62rem; letter-spacing: 0.08em;
-  position: sticky; top: 0; z-index: 10;
-  border-right: 1px solid rgba(255,255,255,0.1);
-  text-align: center;
-}
-.detail-table td {
-  padding: 7px 16px;
-  border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
-.detail-table tr:nth-child(even) td { background: #faf7f2; }
-.detail-table tr:hover td { background: #f5f0e4; }
-.detail-table td.num { text-align: right; }
-
-/* Sheet list tab */
-.sheet-list-wrap { flex: 1; overflow-y: auto; padding: 20px 24px; }
-.sheet-list-table { width: 100%; border-collapse: collapse; font-size: 0.73rem; }
-.sheet-list-table th {
-  text-align: left; padding: 8px 16px;
-  font-size: 0.62rem; font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.1em; color: var(--muted); border-bottom: 2px solid var(--border);
-}
-.sheet-list-table td {
-  padding: 9px 16px; border-bottom: 1px solid var(--border);
+.data-table td.subject.lvl0 { font-weight: 700; padding-left: 8px; background: #eeeade; color: var(--navy); }
+.data-table td.subject.lvl1 { font-weight: 600; padding-left: 20px; }
+.data-table td.subject.lvl2 { font-weight: 400; padding-left: 36px; }
+.data-table td.subject.lvl3 { font-weight: 400; padding-left: 52px; color: var(--muted); }
+ 
+.data-table tbody tr.lvl0 td { background: #eeeade; }
+.data-table tbody tr.lvl0:hover td { background: #e5e0d0; }
+.data-table tbody tr:not(.lvl0):hover td { background: #f7f3ea; }
+ 
+/* Number cells */
+.data-table td.num {
+  text-align: right;
   font-family: 'JetBrains Mono', monospace;
+  font-size: 0.69rem;
+  color: var(--num-color);
+  white-space: nowrap;
 }
+.data-table td.num.neg { color: var(--neg-color); }
+.data-table td.num.zero { color: var(--muted); }
+.data-table td.num.formula-val { color: var(--formula-color); }
+.data-table td.pct {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.64rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.data-table td.pct.neg { color: var(--neg-color); }
+ 
+/* Sheet list */
+.sheet-list-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.sheet-list-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+.sheet-list-table th {
+  text-align: left; padding: 7px 14px; font-size: 0.6rem;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em;
+  color: var(--muted); border-bottom: 2px solid var(--border);
+}
+.sheet-list-table td { padding: 8px 14px; border-bottom: 1px solid var(--border2); font-family: 'JetBrains Mono', monospace; }
 .sheet-list-table tr:hover td { background: #f5f0e4; cursor: pointer; }
-.slt-num { width: 40px; color: var(--muted); font-size: 0.65rem; }
+.slt-num { width: 36px; color: var(--muted); font-size: 0.62rem; }
 .slt-name { font-weight: 600; color: var(--navy); }
-.slt-cells { color: var(--muted); font-size: 0.68rem; }
-.slt-formulas { color: #5a6e3a; font-size: 0.68rem; }
-.slt-badge {
-  display: inline-block; padding: 2px 7px;
-  font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;
-}
+.slt-cells { color: var(--muted); font-size: 0.65rem; }
+.slt-fmla { color: var(--formula-color); font-size: 0.65rem; }
+.badge { display: inline-block; padding: 2px 6px; font-size: 0.58rem; letter-spacing: 0.05em; }
 .badge-ok { background: #eef7f2; color: var(--success); border: 1px solid #b8dece; }
 .badge-empty { background: #f5f5f5; color: var(--muted); border: 1px solid var(--border); }
-
-/* Status dots in topbar */
-.status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  display: inline-block; margin-right: 6px;
-}
-.status-dot.active { background: #5ec490; box-shadow: 0 0 6px #5ec490; }
-
-@media (max-width: 768px) {
-  :root { --sidebar-w: 100%; }
-  .app { grid-template-columns: 1fr; grid-template-rows: 52px auto 1fr; }
-  .right-panel { grid-row: 3; }
-}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- Top bar -->
+ 
   <header class="topbar">
     <span class="topbar-logo">VGHY</span>
     <div class="topbar-sep"></div>
     <span class="topbar-title">分院決算表合併系統</span>
     <span class="topbar-year">中華民國 114 年度</span>
   </header>
-
-  <!-- Sidebar -->
+ 
   <aside class="sidebar">
-
-    <!-- Step 1 -->
     <div class="step-block">
-      <div class="step-label">
-        <div class="step-num">1</div>
-        <span class="step-title">上傳月報</span>
-      </div>
+      <div class="step-label"><div class="step-num">1</div><span class="step-title">上傳月報</span></div>
       <div class="drop-zone" id="drop-zone">
         <input type="file" accept=".xls,.xlsx" multiple id="file-input" onchange="handleFiles(this.files)">
         <span class="drop-icon">📁</span>
@@ -460,110 +297,97 @@ html, body {
       <div class="file-chips" id="file-chips"></div>
       <div class="upload-note" id="upload-note" style="display:none"></div>
     </div>
-
-    <!-- Step 2 -->
+ 
     <div class="step-block">
-      <div class="step-label">
-        <div class="step-num">2</div>
-        <span class="step-title">產生合併</span>
-      </div>
-      <button class="btn-primary" id="btn-merge" disabled onclick="mergeFiles()">
-        ⚡ 產生合併月報
-      </button>
+      <div class="step-label"><div class="step-num">2</div><span class="step-title">產生合併</span></div>
+      <button class="btn-primary" id="btn-merge" disabled onclick="mergeFiles()">⚡ 產生合併月報</button>
       <div class="btn-note" id="merge-note">請先上傳分院月報</div>
       <div class="progress-wrap" id="progress-wrap">
         <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
         <div class="progress-text" id="progress-text"></div>
       </div>
     </div>
-
-    <!-- Step 3 -->
+ 
     <div class="step-block">
-      <div class="step-label">
-        <div class="step-num">3</div>
-        <span class="step-title">下載</span>
-      </div>
-      <button class="btn-secondary" id="btn-download" disabled onclick="downloadResult()">
-        ↓ 下載合併月報 Excel
-      </button>
+      <div class="step-label"><div class="step-num">3</div><span class="step-title">下載</span></div>
+      <button class="btn-secondary" id="btn-download" disabled onclick="downloadResult()">↓ 下載合併月報 Excel</button>
       <div class="btn-note">包含所有共通工作表</div>
     </div>
-
   </aside>
-
-  <!-- Right Panel -->
+ 
   <div class="right-panel">
     <div class="tab-bar">
       <div class="tab active" onclick="switchTab('summary')">加總總覽</div>
       <div class="tab" onclick="switchTab('detail')">各分院明細</div>
       <div class="tab" onclick="switchTab('sheets')">工作表清單</div>
     </div>
-
-    <!-- Tab: 加總總覽 -->
+ 
+    <!-- 加總總覽 -->
     <div class="tab-content active" id="tab-summary">
       <div class="empty-state" id="summary-empty">
         <span class="empty-icon">📊</span>
-        <span class="empty-text">合併後將顯示各工作表的加總數據</span>
+        <span class="empty-text">合併後將顯示三院加總數據</span>
       </div>
-      <div id="summary-content" style="display:none; flex:1; overflow:hidden; flex-direction:column; display:none;">
-        <div id="summary-sheet-nav" class="sheet-nav"></div>
-        <div class="table-wrap" id="summary-table-wrap"></div>
+      <div id="summary-inner" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+        <div class="sheet-nav" id="summary-nav"></div>
+        <div class="table-wrap" id="summary-wrap"></div>
       </div>
     </div>
-
-    <!-- Tab: 各分院明細 -->
+ 
+    <!-- 各分院明細 -->
     <div class="tab-content" id="tab-detail">
       <div class="empty-state" id="detail-empty">
         <span class="empty-icon">🏥</span>
-        <span class="empty-text">上傳分院檔案後可查看各院明細資料</span>
+        <span class="empty-text">上傳分院檔案後查看各院明細</span>
       </div>
-      <div id="detail-content" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
-        <div id="detail-sheet-nav" class="sheet-nav"></div>
-        <div class="table-wrap" id="detail-table-wrap"></div>
+      <div id="detail-inner" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+        <div class="sheet-nav" id="detail-nav"></div>
+        <div class="table-wrap" id="detail-wrap"></div>
       </div>
     </div>
-
-    <!-- Tab: 工作表清單 -->
+ 
+    <!-- 工作表清單 -->
     <div class="tab-content" id="tab-sheets">
       <div class="empty-state" id="sheets-empty">
         <span class="empty-icon">📋</span>
-        <span class="empty-text">上傳檔案後顯示所有工作表清單</span>
+        <span class="empty-text">上傳檔案後顯示工作表清單</span>
       </div>
-      <div class="sheet-list-wrap" id="sheet-list-content" style="display:none;">
+      <div class="sheet-list-wrap" id="sheet-list-wrap" style="display:none;">
         <table class="sheet-list-table">
-          <thead>
-            <tr>
-              <th class="slt-num">#</th>
-              <th>工作表名稱</th>
-              <th>儲存格數</th>
-              <th>公式格數</th>
-              <th>狀態</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th class="slt-num">#</th>
+            <th>工作表名稱</th>
+            <th>儲存格數</th>
+            <th>公式格數</th>
+            <th>狀態</th>
+          </tr></thead>
           <tbody id="sheet-list-body"></tbody>
         </table>
       </div>
     </div>
   </div>
 </div>
-
+ 
 <script>
-// ── State ─────────────────────────────────────────────────────
-const uploaded = [];   // {name, workbook}
+// ══════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════
+const uploaded = [];
 let mergedWb = null;
-let currentSummarySheet = 0;
-let currentDetailSheet  = 0;
-let currentDetailFile   = 0;
-
-// ── Drag & Drop ───────────────────────────────────────────────
+let curSummarySheet = 0;
+let curDetailSheet  = 0;
+let curDetailFile   = 0;
+ 
+// ══════════════════════════════════════════════════════
+// Upload
+// ══════════════════════════════════════════════════════
 const dz = document.getElementById('drop-zone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
 dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
-
-// ── File Handling ─────────────────────────────────────────────
-function handleFiles(fileList) {
-  Array.from(fileList).forEach(file => {
+ 
+function handleFiles(list) {
+  Array.from(list).forEach(file => {
     if (!file.name.match(/\.(xls|xlsx)$/i)) return;
     if (uploaded.find(f => f.name === file.name)) return;
     const reader = new FileReader();
@@ -573,223 +397,181 @@ function handleFiles(fileList) {
           type:'array', cellFormula:true, cellNF:true, cellStyles:false, cellDates:false
         });
         uploaded.push({ name: file.name, workbook: wb });
-        renderChips();
-        updateSidebarState();
-        renderSheetList();
-        renderDetailNav();
+        renderChips(); updateState(); renderSheetList(); renderDetailNav();
       } catch(err) { alert('讀取失敗：' + file.name + '\n' + err.message); }
     };
     reader.readAsArrayBuffer(file);
   });
   document.getElementById('file-input').value = '';
 }
-
+ 
 function removeFile(i) {
-  uploaded.splice(i,1);
-  renderChips();
-  updateSidebarState();
-  renderSheetList();
-  renderDetailNav();
+  uploaded.splice(i, 1);
+  renderChips(); updateState(); renderSheetList(); renderDetailNav();
 }
-
+ 
 function renderChips() {
   const wrap = document.getElementById('file-chips');
   wrap.innerHTML = '';
   uploaded.forEach((f,i) => {
-    const div = document.createElement('div');
-    div.className = 'chip';
-    div.innerHTML = `<span class="chip-name" title="${f.name}">${f.name}</span>
+    const d = document.createElement('div');
+    d.className = 'chip';
+    d.innerHTML = `<span class="chip-name" title="${f.name}">${f.name}</span>
       <span class="chip-sheets">${f.workbook.SheetNames.length}張</span>
-      <button class="chip-rm" onclick="removeFile(${i})" title="移除">×</button>`;
-    wrap.appendChild(div);
+      <button class="chip-rm" onclick="removeFile(${i})">×</button>`;
+    wrap.appendChild(d);
   });
 }
-
-function updateSidebarState() {
+ 
+function updateState() {
   const n = uploaded.length;
   const note = document.getElementById('upload-note');
   const btn  = document.getElementById('btn-merge');
-  const mnote = document.getElementById('merge-note');
-
+  const mn   = document.getElementById('merge-note');
   note.style.display = n > 0 ? 'block' : 'none';
-  if (n === 0) {
-    btn.disabled = true; mnote.textContent = '請先上傳分院月報';
-  } else if (n === 1) {
-    note.className = 'upload-note warn';
-    note.textContent = '⚠ 已載入 1 份，需至少 2 份才能合併';
-    btn.disabled = true; mnote.textContent = '還需上傳更多分院';
+  if (n === 0) { btn.disabled = true; mn.textContent = '請先上傳分院月報'; }
+  else if (n === 1) {
+    note.className = 'upload-note warn'; note.textContent = '⚠ 需至少 2 份才能合併';
+    btn.disabled = true; mn.textContent = '還需上傳更多分院';
   } else {
-    note.className = 'upload-note ok';
-    note.textContent = `✓ 已載入 ${n} 份分院檔案，可開始合併`;
-    btn.disabled = false; mnote.textContent = `將合併 ${n} 間分院的所有工作表`;
+    note.className = 'upload-note ok'; note.textContent = `✓ 已載入 ${n} 份，可開始合併`;
+    btn.disabled = false; mn.textContent = `合併 ${n} 間分院的所有工作表`;
   }
 }
-
-// ── Tab switching ─────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const names = ['summary','detail','sheets'];
-    t.classList.toggle('active', names[i] === tab);
+ 
+// ══════════════════════════════════════════════════════
+// Tab
+// ══════════════════════════════════════════════════════
+function switchTab(t) {
+  ['summary','detail','sheets'].forEach(k => {
+    document.getElementById('tab-'+k).classList.toggle('active', k===t);
   });
-  ['summary','detail','sheets'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
-  });
-}
-
-// ── Sheet List Tab ────────────────────────────────────────────
-function renderSheetList() {
-  const empty = document.getElementById('sheets-empty');
-  const content = document.getElementById('sheet-list-content');
-  const body = document.getElementById('sheet-list-body');
-
-  if (uploaded.length === 0) {
-    empty.style.display = 'flex'; content.style.display = 'none'; return;
-  }
-  empty.style.display = 'none'; content.style.display = 'block';
-
-  const baseWb = uploaded[0].workbook;
-  body.innerHTML = '';
-  baseWb.SheetNames.forEach((name, i) => {
-    const sheet = baseWb.Sheets[name];
-    let cells = 0, formulas = 0;
-    if (sheet && sheet['!ref']) {
-      const range = XLSX.utils.decode_range(sheet['!ref']);
-      for (let r = range.s.r; r <= range.e.r; r++) {
-        for (let c = range.s.c; c <= range.e.c; c++) {
-          const cell = sheet[XLSX.utils.encode_cell({r,c})];
-          if (cell) { cells++; if (cell.f) formulas++; }
-        }
-      }
-    }
-    const empty2 = !sheet || !sheet['!ref'];
-    const tr = document.createElement('tr');
-    tr.onclick = () => { switchTab('summary'); if (mergedWb) goSummarySheet(i); };
-    tr.innerHTML = `
-      <td class="slt-num">${i+1}</td>
-      <td class="slt-name">${name}</td>
-      <td class="slt-cells">${cells.toLocaleString()}</td>
-      <td class="slt-formulas">${formulas > 0 ? formulas.toLocaleString() : '-'}</td>
-      <td><span class="slt-badge ${empty2 ? 'badge-empty':'badge-ok'}">${empty2?'空白':'資料'}</span></td>`;
-    body.appendChild(tr);
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['summary','detail','sheets'][i]===t);
   });
 }
-
-// ── Merge ─────────────────────────────────────────────────────
-function plog(msg, type='') {
-  const wrap = document.getElementById('progress-wrap');
-  wrap.classList.add('active');
+ 
+// ══════════════════════════════════════════════════════
+// Merge
+// ══════════════════════════════════════════════════════
+function plog(msg, cls='') {
+  document.getElementById('progress-wrap').classList.add('active');
   const div = document.getElementById('progress-text');
-  const sp = document.createElement('span');
-  sp.className = 'pl ' + type;
-  sp.textContent = msg;
-  div.appendChild(sp);
-  div.scrollTop = div.scrollHeight;
+  const sp = document.createElement('span'); sp.className='pl '+cls; sp.textContent=msg;
+  div.appendChild(sp); div.scrollTop=div.scrollHeight;
 }
-function setProg(pct) { document.getElementById('progress-fill').style.width = pct+'%'; }
-
-function isNum(c) { return c && c.t==='n' && c.v!=null; }
-function hasFx(c) { return c && typeof c.f==='string' && c.f.length>0; }
-
-function replaceName(s) {
-  if (typeof s!=='string') return s;
-  let r = s.replace(/臺北榮民總醫院作業基金－\S+分院/g,'臺北榮民總醫院作業基金－三院合併');
-  if (r===s) r = s.replace(/業基金－\S+分院/,'業基金－三院合併');
+function setProg(p) { document.getElementById('progress-fill').style.width=p+'%'; }
+ 
+function isNum(c)  { return c && c.t==='n' && c.v != null; }
+function hasFx(c)  { return c && typeof c.f==='string' && c.f.length>0; }
+ 
+function fixTitle(s) {
+  if (typeof s !== 'string') return s;
+  let r = s.replace(/臺北榮民總醫院作業基金－\S+分院/g, '臺北榮民總醫院作業基金－三院合併');
+  if (r===s) r = s.replace(/業基金－\S+分院/, '業基金－三院合併');
   return r;
 }
-
+ 
 function mergeFiles() {
   document.getElementById('progress-text').innerHTML = '';
   document.getElementById('progress-wrap').classList.add('active');
   document.getElementById('btn-merge').disabled = true;
   document.getElementById('btn-download').disabled = true;
   setProg(0);
-
+ 
   setTimeout(() => {
     try {
-      const wbs = uploaded.map(f=>f.workbook);
+      const wbs = uploaded.map(f => f.workbook);
       const base = wbs[0];
       const sheets = base.SheetNames;
       plog(`合併 ${wbs.length} 間分院 × ${sheets.length} 張工作表`);
-
+ 
       const out = XLSX.utils.book_new();
       let summed=0, kept=0, merged=0;
-
+ 
       sheets.forEach((name, si) => {
-        setProg(Math.round(si/sheets.length*88));
+        setProg(Math.round(si/sheets.length*90));
         const bs = base.Sheets[name];
-        if (!bs || !bs['!ref']) { XLSX.utils.book_append_sheet(out,{},name); return; }
-
+        if (!bs || !bs['!ref']) { XLSX.utils.book_append_sheet(out, {}, name); return; }
+ 
         const range = XLSX.utils.decode_range(bs['!ref']);
-        const allS = wbs.map(wb=>wb.Sheets[name]||null);
+        const allS  = wbs.map(wb => wb.Sheets[name] || null);
         const ns = {};
-
+ 
         for (let r=range.s.r; r<=range.e.r; r++) {
           for (let c=range.s.c; c<=range.e.c; c++) {
             const addr = XLSX.utils.encode_cell({r,c});
             const bc = bs[addr];
             if (!bc) continue;
-
-            const nc = Object.assign({},bc);
-
-            // Update title text
-            if (r<4 && nc.t==='s' && typeof nc.v==='string') {
-              nc.v = replaceName(nc.v);
-              if (nc.w) nc.w = replaceName(nc.w);
+ 
+            const nc = Object.assign({}, bc);
+ 
+            // Fix title text in first 4 rows
+            if (r < 4 && nc.t === 's' && typeof nc.v === 'string') {
+              nc.v = fixTitle(nc.v);
+              if (nc.w) nc.w = fixTitle(nc.w);
             }
-
-            // Formula → preserve
-            if (hasFx(bc)) { kept++; ns[addr]=nc; continue; }
-
-            // Number → sum
+ 
             if (isNum(bc)) {
-              let total = bc.v||0;
+              // Sum numeric value across all files
+              let total = bc.v || 0;
               for (let wi=1; wi<allS.length; wi++) {
                 const oc = allS[wi]?.[addr];
-                if (oc && isNum(oc) && !hasFx(oc)) total += (oc.v||0);
+                if (oc && isNum(oc)) total += (oc.v || 0);
               }
-              nc.v = total; delete nc.w;
-              summed++; ns[addr]=nc; continue;
+              nc.v = total;
+              delete nc.w; // clear cached formatted string
+ 
+              if (hasFx(bc)) {
+                // Formula cell: keep formula BUT also store the correct summed value
+                // So preview shows right number; Excel recalculates on open
+                kept++;
+              } else {
+                summed++;
+              }
+              ns[addr] = nc;
+              continue;
             }
-
-            ns[addr]=nc;
+ 
+            // Text / other
+            ns[addr] = nc;
           }
         }
-
-        ns['!ref'] = bs['!ref'];
-        if (bs['!merges']) ns['!merges']=bs['!merges'];
-        if (bs['!cols'])   ns['!cols']=bs['!cols'];
-        if (bs['!rows'])   ns['!rows']=bs['!rows'];
-
-        XLSX.utils.book_append_sheet(out,ns,name);
+ 
+        ns['!ref']    = bs['!ref'];
+        if (bs['!merges']) ns['!merges'] = bs['!merges'];
+        if (bs['!cols'])   ns['!cols']   = bs['!cols'];
+        if (bs['!rows'])   ns['!rows']   = bs['!rows'];
+ 
+        XLSX.utils.book_append_sheet(out, ns, name);
         merged++;
       });
-
+ 
       setProg(100);
-      plog(`✓ 完成！${merged}張工作表　數值加總:${summed.toLocaleString()}格　公式保留:${kept.toLocaleString()}格`,'ok');
-
+      plog(`✓ ${merged}張工作表　純數值加總:${summed.toLocaleString()}格　公式+加總:${kept.toLocaleString()}格`, 'ok');
+ 
       mergedWb = out;
       document.getElementById('btn-download').disabled = false;
       document.getElementById('btn-merge').disabled = false;
-
       renderSummaryView();
+ 
     } catch(err) {
-      plog('✗ 合併失敗：'+err.message,'err');
+      plog('✗ 合併失敗：' + err.message, 'err');
       document.getElementById('btn-merge').disabled = false;
     }
   }, 80);
 }
-
-// ── Summary view (merged result) ──────────────────────────────
+ 
+// ══════════════════════════════════════════════════════
+// Summary View (merged)
+// ══════════════════════════════════════════════════════
 function renderSummaryView() {
   if (!mergedWb) return;
   document.getElementById('summary-empty').style.display = 'none';
-  const sc = document.getElementById('summary-content');
-  sc.style.display = 'flex';
-  sc.style.flexDirection = 'column';
-  sc.style.flex = '1';
-  sc.style.overflow = 'hidden';
-
-  const nav = document.getElementById('summary-sheet-nav');
+  const inner = document.getElementById('summary-inner');
+  inner.style.display = 'flex';
+ 
+  const nav = document.getElementById('summary-nav');
   nav.innerHTML = '';
   mergedWb.SheetNames.forEach((name,i) => {
     const t = document.createElement('div');
@@ -801,115 +583,318 @@ function renderSummaryView() {
   goSummarySheet(0);
   switchTab('summary');
 }
-
+ 
 function goSummarySheet(i) {
-  currentSummarySheet = i;
-  document.querySelectorAll('#summary-sheet-nav .sheet-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  curSummarySheet = i;
+  document.querySelectorAll('#summary-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active', j===i));
   const sheet = mergedWb.Sheets[mergedWb.SheetNames[i]];
-  document.getElementById('summary-table-wrap').innerHTML = '';
+  const wrap = document.getElementById('summary-wrap');
+  wrap.innerHTML = '';
   if (!sheet || !sheet['!ref']) {
-    document.getElementById('summary-table-wrap').innerHTML = '<div style="padding:32px;color:#aaa;font-family:monospace;font-size:.75rem;">此工作表無資料</div>';
+    wrap.innerHTML = '<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
     return;
   }
-  document.getElementById('summary-table-wrap').appendChild(buildTable(sheet, mergedWb.SheetNames[i], null));
+  wrap.appendChild(buildSheet(sheet));
 }
-
-// ── Detail view (per file) ────────────────────────────────────
+ 
+// ══════════════════════════════════════════════════════
+// Detail View (per file)
+// ══════════════════════════════════════════════════════
 function renderDetailNav() {
   const empty = document.getElementById('detail-empty');
-  const content = document.getElementById('detail-content');
-  if (uploaded.length === 0) { empty.style.display='flex'; content.style.display='none'; return; }
-
-  empty.style.display = 'none';
-  content.style.display = 'flex';
-  content.style.flexDirection = 'column';
-  content.style.flex = '1';
-  content.style.overflow = 'hidden';
-
-  const nav = document.getElementById('detail-sheet-nav');
+  const inner = document.getElementById('detail-inner');
+  if (uploaded.length === 0) { empty.style.display='flex'; inner.style.display='none'; return; }
+  empty.style.display='none'; inner.style.display='flex';
+ 
+  const nav = document.getElementById('detail-nav');
   const baseSheets = uploaded[0].workbook.SheetNames;
   nav.innerHTML = '';
-
-  // File selector
-  const fileSel = document.createElement('select');
-  fileSel.style.cssText = 'border:1px solid #ddd;padding:4px 8px;font-size:.7rem;font-family:monospace;margin-right:8px;background:#fff;cursor:pointer;flex-shrink:0;';
+ 
+  const sel = document.createElement('select');
+  sel.className = 'file-sel';
   uploaded.forEach((f,i) => {
-    const opt = document.createElement('option');
-    opt.value = i; opt.textContent = f.name.replace(/\.(xls|xlsx)$/i,'');
-    fileSel.appendChild(opt);
+    const o = document.createElement('option');
+    o.value = i; o.textContent = f.name.replace(/\.(xls|xlsx)$/i,'');
+    sel.appendChild(o);
   });
-  fileSel.onchange = () => { currentDetailFile = parseInt(fileSel.value); goDetailSheet(currentDetailSheet); };
-  nav.appendChild(fileSel);
-
+  sel.onchange = () => { curDetailFile = parseInt(sel.value); goDetailSheet(curDetailSheet); };
+  nav.appendChild(sel);
+ 
   baseSheets.forEach((name,i) => {
     const t = document.createElement('div');
     t.className = 'sheet-tab' + (i===0?' active':'');
     t.textContent = name;
-    t.onclick = () => { currentDetailSheet=i; goDetailSheet(i); };
+    t.onclick = () => { curDetailSheet=i; goDetailSheet(i); };
     nav.appendChild(t);
   });
-
   goDetailSheet(0);
 }
-
+ 
 function goDetailSheet(i) {
-  currentDetailSheet = i;
-  document.querySelectorAll('#detail-sheet-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active',j===i));
-  const wb = uploaded[currentDetailFile]?.workbook;
+  curDetailSheet = i;
+  document.querySelectorAll('#detail-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active', j===i));
+  const wb = uploaded[curDetailFile]?.workbook;
   if (!wb) return;
-  const sheetName = wb.SheetNames[i];
-  const sheet = wb.Sheets[sheetName];
-  const wrap = document.getElementById('detail-table-wrap');
+  const sheet = wb.Sheets[wb.SheetNames[i]];
+  const wrap = document.getElementById('detail-wrap');
   wrap.innerHTML = '';
   if (!sheet || !sheet['!ref']) {
-    wrap.innerHTML = '<div style="padding:32px;color:#aaa;font-family:monospace;font-size:.75rem;">此工作表無資料</div>';
+    wrap.innerHTML = '<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
     return;
   }
-  wrap.appendChild(buildTable(sheet, sheetName, uploaded[currentDetailFile].name));
+  wrap.appendChild(buildSheet(sheet));
 }
-
-// ── Build table from sheet ────────────────────────────────────
-function buildTable(sheet, sheetName, source) {
-  const range = XLSX.utils.decode_range(sheet['!ref']);
-  const maxRows = Math.min(range.e.r - range.s.r + 1, 200); // cap at 200 rows for perf
-  const maxCols = Math.min(range.e.c - range.s.c + 1, 30);
-
-  const table = document.createElement('table');
-  table.className = 'sheet-table';
-
-  // Header row (column letters)
-  const thead = document.createElement('thead');
-  const hrow = document.createElement('tr');
-  const rh = document.createElement('th'); rh.textContent = ''; hrow.appendChild(rh);
-  for (let c=range.s.c; c<range.s.c+maxCols; c++) {
-    const th = document.createElement('th');
-    th.textContent = XLSX.utils.encode_col(c);
-    hrow.appendChild(th);
-  }
-  thead.appendChild(hrow);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  for (let r=range.s.r; r<range.s.r+maxRows; r++) {
+ 
+// ══════════════════════════════════════════════════════
+// Sheet List
+// ══════════════════════════════════════════════════════
+function renderSheetList() {
+  const empty = document.getElementById('sheets-empty');
+  const wrap  = document.getElementById('sheet-list-wrap');
+  if (uploaded.length === 0) { empty.style.display='flex'; wrap.style.display='none'; return; }
+  empty.style.display='none'; wrap.style.display='block';
+ 
+  const body = document.getElementById('sheet-list-body');
+  body.innerHTML = '';
+  uploaded[0].workbook.SheetNames.forEach((name,i) => {
+    const s = uploaded[0].workbook.Sheets[name];
+    let cells=0, fmlas=0;
+    if (s && s['!ref']) {
+      const r = XLSX.utils.decode_range(s['!ref']);
+      for (let rr=r.s.r; rr<=r.e.r; rr++) for (let cc=r.s.c; cc<=r.e.c; cc++) {
+        const c = s[XLSX.utils.encode_cell({r:rr,c:cc})];
+        if (c) { cells++; if (c.f) fmlas++; }
+      }
+    }
+    const isEmpty = !s || !s['!ref'];
     const tr = document.createElement('tr');
-    const rowHead = document.createElement('td');
-    rowHead.className = 'row-head'; rowHead.textContent = r+1;
-    tr.appendChild(rowHead);
-
-    for (let c=range.s.c; c<range.s.c+maxCols; c++) {
-      const td = document.createElement('td');
+    tr.onclick = () => { if(mergedWb) { switchTab('summary'); goSummarySheet(i); } };
+    tr.innerHTML = `<td class="slt-num">${i+1}</td>
+      <td class="slt-name">${name}</td>
+      <td class="slt-cells">${cells.toLocaleString()}</td>
+      <td class="slt-fmla">${fmlas>0?fmlas.toLocaleString():'-'}</td>
+      <td><span class="badge ${isEmpty?'badge-empty':'badge-ok'}">${isEmpty?'空白':'資料'}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+ 
+// ══════════════════════════════════════════════════════
+// Core Table Builder
+// Reads the xls column layout:
+//   col 0,1,2,3 = subject text (indent levels 0-3)
+//   col 4 = 本年度預算數(金額), col 5 = %
+//   col 6 = 本年度決算數(金額), col 7 = %
+//   col 8 = 比較增減(金額),     col 9 = %
+//   col 10= 上年度決算數(金額), col 11= %
+//   col 12= internal marker (skip)
+//   col 13-16 = right-side summary (skip)
+// ══════════════════════════════════════════════════════
+const KNOWN_SHEETS = {
+  // sheets that follow the standard 4-col subject + 4×(金額,%) layout
+  standard: ['收支餘絀']
+};
+ 
+function buildSheet(sheet) {
+  const range = XLSX.utils.decode_range(sheet['!ref']);
+  const nRows = range.e.r - range.s.r + 1;
+  const nCols = range.e.c - range.s.c + 1;
+ 
+  // Detect if this is a "decision statement" with col 0-3 indent pattern
+  // by checking whether col 4 has numbers and col 0-3 have text in most rows
+  const isDecisionSheet = detectDecisionLayout(sheet, range);
+ 
+  if (isDecisionSheet) {
+    return buildDecisionTable(sheet, range);
+  } else {
+    return buildGenericTable(sheet, range);
+  }
+}
+ 
+function detectDecisionLayout(sheet, range) {
+  // Check if col 0-3 are mostly text and col 4+ are numbers
+  let textIn0to3 = 0, numIn4plus = 0, total = 0;
+  for (let r=range.s.r; r<=Math.min(range.s.r+20, range.e.r); r++) {
+    for (let c=0; c<=3; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && cell.t==='s') textIn0to3++;
+    }
+    for (let c=4; c<=11; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && cell.t==='n') numIn4plus++;
+    }
+    total++;
+  }
+  return textIn0to3 > 3 && numIn4plus > 5;
+}
+ 
+function buildDecisionTable(sheet, range) {
+  // Find header row (row with 金額/% labels or 科目)
+  // Typically rows 0-5 are header; data starts at ~row 6
+  let dataStartRow = range.s.r;
+  for (let r=range.s.r; r<=Math.min(range.s.r+8, range.e.r); r++) {
+    const c0 = sheet[XLSX.utils.encode_cell({r,c:range.s.c})];
+    if (c0 && c0.t==='s' && /科目/.test(c0.v)) { dataStartRow = r+2; break; }
+  }
+ 
+  // Build column header from header rows
+  // Read rows range.s.r to dataStartRow-1 to extract column headers
+  const headerMap = {};
+  for (let r=range.s.r; r<dataStartRow; r++) {
+    for (let c=range.s.c; c<=range.e.c; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && cell.t==='s') {
+        const txt = (cell.v||'').trim();
+        if (txt) { if (!headerMap[c]) headerMap[c]=txt; else headerMap[c]+=' '+txt; }
+      }
+    }
+  }
+ 
+  // Column groups: [col_amount, col_pct, label]
+  // We show: 本年度預算數(4,5), 本年度決算數(6,7), 比較增減(8,9), 上年度決算數(10,11)
+  const colGroups = [
+    { amount: range.s.c+4, pct: range.s.c+5, label: headerMap[range.s.c+4] || '本年度預算數' },
+    { amount: range.s.c+6, pct: range.s.c+7, label: headerMap[range.s.c+6] || '本年度決算數' },
+    { amount: range.s.c+8, pct: range.s.c+9, label: headerMap[range.s.c+8] || '比較增減' },
+    { amount: range.s.c+10, pct: range.s.c+11, label: headerMap[range.s.c+10] || '上年度決算數' },
+  ].filter(g => g.amount <= range.e.c);
+ 
+  const table = document.createElement('table');
+  table.className = 'data-table';
+ 
+  // thead
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  const th0 = document.createElement('th');
+  th0.className='col-subject'; th0.textContent='科目'; th0.rowSpan=2;
+  hr.appendChild(th0);
+ 
+  colGroups.forEach(g => {
+    const th = document.createElement('th');
+    th.colSpan=2; th.textContent=g.label.replace(/金\s+額/,'金額');
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+ 
+  const hr2 = document.createElement('tr');
+  colGroups.forEach(() => {
+    const ta = document.createElement('th'); ta.className='col-amount'; ta.textContent='金額'; hr2.appendChild(ta);
+    const tp = document.createElement('th'); tp.className='col-pct';    tp.textContent='%';    hr2.appendChild(tp);
+  });
+  thead.appendChild(hr2);
+  table.appendChild(thead);
+ 
+  // tbody
+  const tbody = document.createElement('tbody');
+  let maxRows = Math.min(range.e.r, dataStartRow + 300);
+ 
+  for (let r=dataStartRow; r<=maxRows; r++) {
+    // Determine indent level: which of col 0-3 has text
+    let subjectText = '';
+    let lvl = -1;
+    for (let c=range.s.c; c<=range.s.c+3; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r,c})];
+      if (cell && (cell.t==='s' || cell.t==='n') && cell.v !== '' && cell.v != null) {
+        subjectText = String(cell.w || cell.v).trim();
+        lvl = c - range.s.c;
+        break;
+      }
+    }
+ 
+    // Check if there are any numbers in this row at all
+    let hasAnyNum = false;
+    for (const g of colGroups) {
+      const c = sheet[XLSX.utils.encode_cell({r, c:g.amount})];
+      if (c && c.t==='n') { hasAnyNum=true; break; }
+    }
+ 
+    // Skip rows with no subject and no numbers (spacer rows)
+    if (!subjectText && !hasAnyNum) continue;
+    // Skip pure header/annotation rows (注: etc after data)
+    if (subjectText && /^註[：:]/.test(subjectText)) break;
+ 
+    const tr = document.createElement('tr');
+    if (lvl === 0) tr.classList.add('lvl0');
+ 
+    const tdS = document.createElement('td');
+    tdS.className = `subject lvl${Math.max(0,lvl)}`;
+    tdS.textContent = subjectText || '';
+    tdS.title = subjectText;
+    tr.appendChild(tdS);
+ 
+    colGroups.forEach(g => {
+      const amtCell = sheet[XLSX.utils.encode_cell({r, c:g.amount})];
+      const pctCell = sheet[XLSX.utils.encode_cell({r, c:g.pct})];
+ 
+      const tdA = document.createElement('td');
+      tdA.className = 'num';
+      if (amtCell && amtCell.t==='n' && amtCell.v != null) {
+        const v = amtCell.v;
+        if (hasFx(amtCell)) tdA.classList.add('formula-val');
+        if (v < 0) { tdA.classList.add('neg'); tdA.textContent = '(' + fmtInt(Math.abs(v)) + ')'; }
+        else if (v === 0) { tdA.classList.add('zero'); tdA.textContent = '-'; }
+        else tdA.textContent = fmtInt(v);
+      } else { tdA.textContent = ''; }
+ 
+      const tdP = document.createElement('td');
+      tdP.className = 'pct';
+      if (pctCell && pctCell.t==='n' && pctCell.v != null) {
+        const v = pctCell.v;
+        if (v < 0) { tdP.classList.add('neg'); tdP.textContent = '(' + Math.abs(v).toFixed(2) + ')'; }
+        else if (v === 0) tdP.textContent = '-';
+        else tdP.textContent = v.toFixed(2);
+      } else { tdP.textContent = ''; }
+ 
+      tr.appendChild(tdA);
+      tr.appendChild(tdP);
+    });
+ 
+    tbody.appendChild(tr);
+  }
+ 
+  table.appendChild(tbody);
+  return table;
+}
+ 
+function buildGenericTable(sheet, range) {
+  // Generic fallback: show all cells as-is, up to 200 rows x 30 cols
+  const maxR = Math.min(range.e.r, range.s.r+199);
+  const maxC = Math.min(range.e.c, range.s.c+29);
+ 
+  const table = document.createElement('table');
+  table.className = 'data-table';
+  table.style.tableLayout = 'auto';
+ 
+  const thead = document.createElement('thead');
+  const hr = document.createElement('tr');
+  const empty = document.createElement('th'); empty.style.width='32px'; hr.appendChild(empty);
+  for (let c=range.s.c; c<=maxC; c++) {
+    const th = document.createElement('th');
+    th.style.minWidth='80px';
+    th.textContent = XLSX.utils.encode_col(c);
+    hr.appendChild(th);
+  }
+  thead.appendChild(hr); table.appendChild(thead);
+ 
+  const tbody = document.createElement('tbody');
+  for (let r=range.s.r; r<=maxR; r++) {
+    const tr = document.createElement('tr');
+    const rh = document.createElement('td');
+    rh.style.cssText='color:#aaa;font-size:.6rem;font-family:monospace;text-align:center;padding:4px 6px;background:#f0ece4;border-right:1px solid #e0dbd0;position:sticky;left:0;min-width:32px;';
+    rh.textContent = r+1; tr.appendChild(rh);
+ 
+    for (let c=range.s.c; c<=maxC; c++) {
       const addr = XLSX.utils.encode_cell({r,c});
       const cell = sheet[addr];
+      const td = document.createElement('td');
       if (cell) {
-        if (hasFx(cell)) {
-          td.className = 'formula';
-          td.title = '公式: =' + cell.f;
-          td.textContent = cell.v != null ? fmtNum(cell.v) : '';
-        } else if (cell.t === 'n') {
-          td.className = 'num';
-          td.textContent = fmtNum(cell.v);
+        if (cell.t==='n' && cell.v!=null) {
+          td.className = 'num' + (cell.v<0?' neg':'');
+          if (hasFx(cell)) td.classList.add('formula-val');
+          td.textContent = cell.v<0 ? '('+fmtNum(Math.abs(cell.v))+')' : fmtNum(cell.v);
         } else {
+          td.style.cssText='font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;';
           td.textContent = cell.w || cell.v || '';
+          td.title = cell.w || cell.v || '';
         }
       }
       tr.appendChild(td);
@@ -917,28 +902,24 @@ function buildTable(sheet, sheetName, source) {
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-
-  if (maxRows < range.e.r - range.s.r + 1) {
-    const note = document.createElement('div');
-    note.style.cssText = 'padding:8px 16px;font-size:.65rem;color:#aaa;font-family:monospace;border-top:1px solid #eee;';
-    note.textContent = `（僅顯示前 200 列，共 ${range.e.r - range.s.r + 1} 列）`;
-    const wrap = document.createElement('div');
-    wrap.appendChild(table);
-    wrap.appendChild(note);
-    return wrap;
-  }
-
   return table;
 }
-
-function fmtNum(v) {
-  if (v == null) return '';
-  if (!isFinite(v)) return v.toString();
-  if (Number.isInteger(v)) return v.toLocaleString('zh-TW');
-  return parseFloat(v.toFixed(4)).toLocaleString('zh-TW');
+ 
+// ══════════════════════════════════════════════════════
+// Format helpers
+// ══════════════════════════════════════════════════════
+function fmtInt(v) {
+  if (v == null || !isFinite(v)) return '';
+  return Math.round(v).toLocaleString('zh-TW');
 }
-
-// ── Download ──────────────────────────────────────────────────
+function fmtNum(v) {
+  if (v == null || !isFinite(v)) return '';
+  return Number.isInteger(v) ? v.toLocaleString('zh-TW') : parseFloat(v.toFixed(2)).toLocaleString('zh-TW');
+}
+ 
+// ══════════════════════════════════════════════════════
+// Download
+// ══════════════════════════════════════════════════════
 function downloadResult() {
   if (!mergedWb) return;
   XLSX.writeFile(mergedWb, '三院合併決算表_114年度.xlsx');
