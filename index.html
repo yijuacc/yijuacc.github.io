@@ -538,10 +538,8 @@ function cleanLabel(s) {
  
 // ══════════════════════════════════════════════════════
 // Build Table for a Sheet
-// showSubLevels: max indent level to show (0=top only, 1=+one level, etc.)
 // ══════════════════════════════════════════════════════
-function buildSheet(sheet, showSubLevels) {
-  if (showSubLevels === undefined) showSubLevels = 1; // default: show lvl0 + lvl1 only
+function buildSheet(sheet) {
   const range = XLSX.utils.decode_range(sheet['!ref']);
   const layout = detectLayout(sheet, range);
  
@@ -568,7 +566,28 @@ function buildSheet(sheet, showSubLevels) {
     dataStart = r + 1; // keep advancing past header rows
   }
  
-  // Build table
+  // Auto-detect showSubLevels:
+  // Find the minimum indent level that actually has numeric data rows.
+  // Show from that level + 1 deeper (so we always get at least 2 visible levels).
+  let minDataLvl = subjectDepth; // start high
+  for (let r = dataStart; r <= Math.min(dataStart + 60, range.e.r); r++) {
+    let hasAmt = false;
+    for (const g of groups) {
+      const c = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
+      if (c && c.t === 'n') { hasAmt = true; break; }
+    }
+    if (!hasAmt) continue;
+    for (let ci = range.s.c; ci < range.s.c + subjectDepth; ci++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, ci})];
+      if (cell && cell.t === 's' && cell.v) {
+        const lvl = ci - range.s.c;
+        if (lvl < minDataLvl) minDataLvl = lvl;
+        break;
+      }
+    }
+  }
+  if (minDataLvl === subjectDepth) minDataLvl = 0; // fallback
+  const showSubLevels = minDataLvl + 1; // show min level + one deeper
   const table = document.createElement('table');
   table.className = 'dtable';
  
@@ -760,7 +779,7 @@ function goSummarySheet(i) {
     return;
   }
   // showSubLevels=1: show lvl0 (top categories) + lvl1 (sub-categories), hide detail rows (lvl2+)
-  wrap.appendChild(buildSheet(sheet, 1));
+  wrap.appendChild(buildSheet(sheet));
 }
  
 // ══════════════════════════════════════════════════════
@@ -806,7 +825,7 @@ function goDetailSheet(i) {
     wrap.innerHTML='<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
     return;
   }
-  wrap.appendChild(buildSheet(sheet, 1));
+  wrap.appendChild(buildSheet(sheet));
 }
  
 // ══════════════════════════════════════════════════════
