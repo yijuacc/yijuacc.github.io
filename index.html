@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分院決算表合併系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --navy: #1c2340;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --paper: #f7f4ee;
+  --panel-bg: #ffffff;
+  --border: #e2ddd4;
+  --muted: #8a8070;
+  --success: #2e7d5a;
+  --danger: #a83232;
+  --text: #2a2520;
+  --sidebar-w: 320px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Noto Serif TC', serif;
+  background: var(--paper);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── Layout ── */
+.app {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  height: 100vh;
+}
+
+/* ── Top bar ── */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  border-bottom: 2px solid var(--gold);
+}
+.topbar-logo {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+.topbar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.06em;
+}
+.topbar-sep { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+.topbar-year {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.1em;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 28px 24px 32px;
+  gap: 0;
+}
+
+.step-block { padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+.step-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.step-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.step-num {
+  width: 22px; height: 22px;
+  background: var(--navy);
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--navy);
+  text-transform: uppercase;
+}
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 2px;
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--paper);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--gold);
+  background: #fdf9f0;
+}
+.drop-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.drop-icon { font-size: 2rem; display: block; margin-bottom: 10px; }
+.drop-main { font-size: 0.85rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.drop-sub { font-size: 0.68rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+/* File chips */
+.file-chips { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border: 1px solid var(--border);
+  padding: 7px 10px; font-size: 0.75rem;
+  animation: chipin 0.18s ease;
+}
+@keyframes chipin { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:none; } }
+.chip-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-sheets { font-family: 'JetBrains Mono', monospace; font-size: 0.63rem; color: var(--muted); flex-shrink: 0; }
+.chip-rm {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 0.9rem; line-height: 1; padding: 0 2px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.chip-rm:hover { color: var(--danger); }
+
+.upload-note {
+  margin-top: 10px; padding: 7px 10px;
+  font-size: 0.68rem; font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--border); text-align: center; color: var(--muted);
+}
+.upload-note.ok { border-color: var(--success); color: var(--success); background: #f0f9f5; }
+.upload-note.warn { border-color: var(--gold); color: #7a6020; background: #fdf9ee; }
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover:not(:disabled) { background: #263055; }
+.btn-primary:disabled { background: #b8b0a4; cursor: not-allowed; }
+
+.btn-secondary {
+  width: 100%;
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  padding: 13px;
+  font-family: 'Noto Serif TC', serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 10px;
+}
+.btn-secondary:hover:not(:disabled) { background: var(--gold-light); }
+.btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-note {
+  font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  text-align: center; margin-top: 6px; letter-spacing: 0.05em;
+}
+
+/* Progress mini */
+.progress-wrap { margin-top: 12px; display: none; }
+.progress-wrap.active { display: block; }
+.progress-bar-bg { height: 3px; background: var(--border); overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
+.progress-text {
+  font-size: 0.65rem; font-family: 'JetBrains Mono', monospace;
+  color: var(--muted); margin-top: 6px; line-height: 1.8;
+  max-height: 80px; overflow-y: auto;
+}
+.progress-text .pl { display: block; }
+.progress-text .pl.ok { color: var(--success); }
+.progress-text .pl.err { color: var(--danger); }
+
+/* ── Right Panel ── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  gap: 0;
+  flex-shrink: 0;
+}
+.tab {
+  padding: 14px 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.tab:hover { color: var(--navy); }
+.tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--gold);
+}
+
+/* Tab content areas */
+.tab-content { flex: 1; overflow: hidden; display: none; }
+.tab-content.active { display: flex; flex-direction: column; }
+
+/* Empty state */
+.empty-state {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 3rem; opacity: 0.3; }
+.empty-text { font-size: 0.8rem; letter-spacing: 0.08em; font-family: 'JetBrains Mono', monospace; }
+
+/* Sheet selector + preview */
+.sheet-nav {
+  display: flex; align-items: center; gap: 0;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.sheet-nav::-webkit-scrollbar { height: 3px; }
+.sheet-nav::-webkit-scrollbar-thumb { background: var(--border); }
+
+.sheet-tab {
+  padding: 9px 14px;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.sheet-tab:hover { color: var(--navy); }
+.sheet-tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--gold);
+  font-weight: 600;
+}
+
+/* Table area */
+.table-wrap {
+  flex: 1; overflow: auto;
+  padding: 0;
+}
+.table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.sheet-table {
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  min-width: 100%;
+}
+.sheet-table th {
+  background: var(--navy);
+  color: rgba(255,255,255,0.7);
+  padding: 6px 12px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  text-align: center;
+}
+.sheet-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.sheet-table tr:hover td { background: #f7f2e8; }
+.sheet-table td.num { text-align: right; color: #2a4a80; }
+.sheet-table td.formula { text-align: right; color: #5a6e3a; font-style: italic; }
+.sheet-table td.row-head {
+  position: sticky; left: 0; z-index: 5;
+  background: #f0ece4;
+  color: var(--muted); font-size: 0.6rem;
+  text-align: center; border-right: 1px solid var(--border);
+  padding: 5px 8px; min-width: 36px;
+}
+.sheet-table tr:hover td.row-head { background: #e8e3d8; }
+
+/* Summary tab */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.summary-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+}
+.summary-card-label {
+  font-size: 0.62rem; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.summary-card-value {
+  font-size: 1.4rem; font-weight: 700; color: var(--navy); letter-spacing: -0.02em;
+}
+.summary-card-sub {
+  font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  margin-top: 4px;
+}
+
+/* Detail tab */
+.detail-table-wrap { flex: 1; overflow: auto; padding: 0; }
+.detail-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.73rem; font-family: 'JetBrains Mono', monospace;
+}
+.detail-table th {
+  background: var(--navy); color: rgba(255,255,255,0.8);
+  padding: 8px 16px; font-size: 0.62rem; letter-spacing: 0.08em;
+  position: sticky; top: 0; z-index: 10;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  text-align: center;
+}
+.detail-table td {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.detail-table tr:nth-child(even) td { background: #faf7f2; }
+.detail-table tr:hover td { background: #f5f0e4; }
+.detail-table td.num { text-align: right; }
+
+/* Sheet list tab */
+.sheet-list-wrap { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.sheet-list-table { width: 100%; border-collapse: collapse; font-size: 0.73rem; }
+.sheet-list-table th {
+  text-align: left; padding: 8px 16px;
+  font-size: 0.62rem; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.1em; color: var(--muted); border-bottom: 2px solid var(--border);
+}
+.sheet-list-table td {
+  padding: 9px 16px; border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+}
+.sheet-list-table tr:hover td { background: #f5f0e4; cursor: pointer; }
+.slt-num { width: 40px; color: var(--muted); font-size: 0.65rem; }
+.slt-name { font-weight: 600; color: var(--navy); }
+.slt-cells { color: var(--muted); font-size: 0.68rem; }
+.slt-formulas { color: #5a6e3a; font-size: 0.68rem; }
+.slt-badge {
+  display: inline-block; padding: 2px 7px;
+  font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;
+}
+.badge-ok { background: #eef7f2; color: var(--success); border: 1px solid #b8dece; }
+.badge-empty { background: #f5f5f5; color: var(--muted); border: 1px solid var(--border); }
+
+/* Status dots in topbar */
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: inline-block; margin-right: 6px;
+}
+.status-dot.active { background: #5ec490; box-shadow: 0 0 6px #5ec490; }
+
+@media (max-width: 768px) {
+  :root { --sidebar-w: 100%; }
+  .app { grid-template-columns: 1fr; grid-template-rows: 52px auto 1fr; }
+  .right-panel { grid-row: 3; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <span class="topbar-logo">VGHY</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-title">分院決算表合併系統</span>
+    <span class="topbar-year">中華民國 114 年度</span>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Step 1 -->
+    <div class="step-block">
+      <div class="step-label">
+        <div class="step-num">1</div>
+        <span class="step-title">上傳月報</span>
+      </div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" accept=".xls,.xlsx" multiple id="file-input" onchange="handleFiles(this.files)">
+        <span class="drop-icon">📁</span>
+        <div class="drop-main"><u>點擊選取</u>或拖曳 .xls 至此</div>
+        <div class="drop-sub">可同時選取多個檔案</div>
+      </div>
+      <div class="file-chips" id="file-chips"></div>
+      <div class="upload-note" id="upload-note" style="display:none"></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-block">
+      <div class="step-label">
+        <div class="step-num">2</div>
+        <span class="step-title">產生合併</span>
+      </div>
+      <button class="btn-primary" id="btn-merge" disabled onclick="mergeFiles()">
+        ⚡ 產生合併月報
+      </button>
+      <div class="btn-note" id="merge-note">請先上傳分院月報</div>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <div class="progress-text" id="progress-text"></div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-block">
+      <div class="step-label">
+        <div class="step-num">3</div>
+        <span class="step-title">下載</span>
+      </div>
+      <button class="btn-secondary" id="btn-download" disabled onclick="downloadResult()">
+        ↓ 下載合併月報 Excel
+      </button>
+      <div class="btn-note">包含所有共通工作表</div>
+    </div>
+
+  </aside>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('summary')">加總總覽</div>
+      <div class="tab" onclick="switchTab('detail')">各分院明細</div>
+      <div class="tab" onclick="switchTab('sheets')">工作表清單</div>
+    </div>
+
+    <!-- Tab: 加總總覽 -->
+    <div class="tab-content active" id="tab-summary">
+      <div class="empty-state" id="summary-empty">
+        <span class="empty-icon">📊</span>
+        <span class="empty-text">合併後將顯示各工作表的加總數據</span>
+      </div>
+      <div id="summary-content" style="display:none; flex:1; overflow:hidden; flex-direction:column; display:none;">
+        <div id="summary-sheet-nav" class="sheet-nav"></div>
+        <div class="table-wrap" id="summary-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 各分院明細 -->
+    <div class="tab-content" id="tab-detail">
+      <div class="empty-state" id="detail-empty">
+        <span class="empty-icon">🏥</span>
+        <span class="empty-text">上傳分院檔案後可查看各院明細資料</span>
+      </div>
+      <div id="detail-content" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+        <div id="detail-sheet-nav" class="sheet-nav"></div>
+        <div class="table-wrap" id="detail-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 工作表清單 -->
+    <div class="tab-content" id="tab-sheets">
+      <div class="empty-state" id="sheets-empty">
+        <span class="empty-icon">📋</span>
+        <span class="empty-text">上傳檔案後顯示所有工作表清單</span>
+      </div>
+      <div class="sheet-list-wrap" id="sheet-list-content" style="display:none;">
+        <table class="sheet-list-table">
+          <thead>
+            <tr>
+              <th class="slt-num">#</th>
+              <th>工作表名稱</th>
+              <th>儲存格數</th>
+              <th>公式格數</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody id="sheet-list-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+const uploaded = [];   // {name, workbook}
+let mergedWb = null;
+let currentSummarySheet = 0;
+let currentDetailSheet  = 0;
+let currentDetailFile   = 0;
+
+// ── Drag & Drop ───────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+
+// ── File Handling ─────────────────────────────────────────────
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    if (!file.name.match(/\.(xls|xlsx)$/i)) return;
+    if (uploaded.find(f => f.name === file.name)) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {
+          type:'array', cellFormula:true, cellNF:true, cellStyles:false, cellDates:false
+        });
+        uploaded.push({ name: file.name, workbook: wb });
+        renderChips();
+        updateSidebarState();
+        renderSheetList();
+        renderDetailNav();
+      } catch(err) { alert('讀取失敗：' + file.name + '\n' + err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+  document.getElementById('file-input').value = '';
+}
+
+function removeFile(i) {
+  uploaded.splice(i,1);
+  renderChips();
+  updateSidebarState();
+  renderSheetList();
+  renderDetailNav();
+}
+
+function renderChips() {
+  const wrap = document.getElementById('file-chips');
+  wrap.innerHTML = '';
+  uploaded.forEach((f,i) => {
+    const div = document.createElement('div');
+    div.className = 'chip';
+    div.innerHTML = `<span class="chip-name" title="${f.name}">${f.name}</span>
+      <span class="chip-sheets">${f.workbook.SheetNames.length}張</span>
+      <button class="chip-rm" onclick="removeFile(${i})" title="移除">×</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+function updateSidebarState() {
+  const n = uploaded.length;
+  const note = document.getElementById('upload-note');
+  const btn  = document.getElementById('btn-merge');
+  const mnote = document.getElementById('merge-note');
+
+  note.style.display = n > 0 ? 'block' : 'none';
+  if (n === 0) {
+    btn.disabled = true; mnote.textContent = '請先上傳分院月報';
+  } else if (n === 1) {
+    note.className = 'upload-note warn';
+    note.textContent = '⚠ 已載入 1 份，需至少 2 份才能合併';
+    btn.disabled = true; mnote.textContent = '還需上傳更多分院';
+  } else {
+    note.className = 'upload-note ok';
+    note.textContent = `✓ 已載入 ${n} 份分院檔案，可開始合併`;
+    btn.disabled = false; mnote.textContent = `將合併 ${n} 間分院的所有工作表`;
+  }
+}
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['summary','detail','sheets'];
+    t.classList.toggle('active', names[i] === tab);
+  });
+  ['summary','detail','sheets'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
+  });
+}
+
+// ── Sheet List Tab ────────────────────────────────────────────
+function renderSheetList() {
+  const empty = document.getElementById('sheets-empty');
+  const content = document.getElementById('sheet-list-content');
+  const body = document.getElementById('sheet-list-body');
+
+  if (uploaded.length === 0) {
+    empty.style.display = 'flex'; content.style.display = 'none'; return;
+  }
+  empty.style.display = 'none'; content.style.display = 'block';
+
+  const baseWb = uploaded[0].workbook;
+  body.innerHTML = '';
+  baseWb.SheetNames.forEach((name, i) => {
+    const sheet = baseWb.Sheets[name];
+    let cells = 0, formulas = 0;
+    if (sheet && sheet['!ref']) {
+      const range = XLSX.utils.decode_range(sheet['!ref']);
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const cell = sheet[XLSX.utils.encode_cell({r,c})];
+          if (cell) { cells++; if (cell.f) formulas++; }
+        }
+      }
+    }
+    const empty2 = !sheet || !sheet['!ref'];
+    const tr = document.createElement('tr');
+    tr.onclick = () => { switchTab('summary'); if (mergedWb) goSummarySheet(i); };
+    tr.innerHTML = `
+      <td class="slt-num">${i+1}</td>
+      <td class="slt-name">${name}</td>
+      <td class="slt-cells">${cells.toLocaleString()}</td>
+      <td class="slt-formulas">${formulas > 0 ? formulas.toLocaleString() : '-'}</td>
+      <td><span class="slt-badge ${empty2 ? 'badge-empty':'badge-ok'}">${empty2?'空白':'資料'}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+
+// ── Merge ─────────────────────────────────────────────────────
+function plog(msg, type='') {
+  const wrap = document.getElementById('progress-wrap');
+  wrap.classList.add('active');
+  const div = document.getElementById('progress-text');
+  const sp = document.createElement('span');
+  sp.className = 'pl ' + type;
+  sp.textContent = msg;
+  div.appendChild(sp);
+  div.scrollTop = div.scrollHeight;
+}
+function setProg(pct) { document.getElementById('progress-fill').style.width = pct+'%'; }
+
+function isNum(c) { return c && c.t==='n' && c.v!=null; }
+function hasFx(c) { return c && typeof c.f==='string' && c.f.length>0; }
+
+function replaceName(s) {
+  if (typeof s!=='string') return s;
+  let r = s.replace(/臺北榮民總醫院作業基金－\S+分院/g,'臺北榮民總醫院作業基金－三院合併');
+  if (r===s) r = s.replace(/業基金－\S+分院/,'業基金－三院合併');
+  return r;
+}
+
+function mergeFiles() {
+  document.getElementById('progress-text').innerHTML = '';
+  document.getElementById('progress-wrap').classList.add('active');
+  document.getElementById('btn-merge').disabled = true;
+  document.getElementById('btn-download').disabled = true;
+  setProg(0);
+
+  setTimeout(() => {
+    try {
+      const wbs = uploaded.map(f=>f.workbook);
+      const base = wbs[0];
+      const sheets = base.SheetNames;
+      plog(`合併 ${wbs.length} 間分院 × ${sheets.length} 張工作表`);
+
+      const out = XLSX.utils.book_new();
+      let summed=0, kept=0, merged=0;
+
+      sheets.forEach((name, si) => {
+        setProg(Math.round(si/sheets.length*88));
+        const bs = base.Sheets[name];
+        if (!bs || !bs['!ref']) { XLSX.utils.book_append_sheet(out,{},name); return; }
+
+        const range = XLSX.utils.decode_range(bs['!ref']);
+        const allS = wbs.map(wb=>wb.Sheets[name]||null);
+        const ns = {};
+
+        for (let r=range.s.r; r<=range.e.r; r++) {
+          for (let c=range.s.c; c<=range.e.c; c++) {
+            const addr = XLSX.utils.encode_cell({r,c});
+            const bc = bs[addr];
+            if (!bc) continue;
+
+            const nc = Object.assign({},bc);
+
+            // Update title text
+            if (r<4 && nc.t==='s' && typeof nc.v==='string') {
+              nc.v = replaceName(nc.v);
+              if (nc.w) nc.w = replaceName(nc.w);
+            }
+
+            // Formula → preserve
+            if (hasFx(bc)) { kept++; ns[addr]=nc; continue; }
+
+            // Number → sum
+            if (isNum(bc)) {
+              let total = bc.v||0;
+              for (let wi=1; wi<allS.length; wi++) {
+                const oc = allS[wi]?.[addr];
+                if (oc && isNum(oc) && !hasFx(oc)) total += (oc.v||0);
+              }
+              nc.v = total; delete nc.w;
+              summed++; ns[addr]=nc; continue;
+            }
+
+            ns[addr]=nc;
+          }
+        }
+
+        ns['!ref'] = bs['!ref'];
+        if (bs['!merges']) ns['!merges']=bs['!merges'];
+        if (bs['!cols'])   ns['!cols']=bs['!cols'];
+        if (bs['!rows'])   ns['!rows']=bs['!rows'];
+
+        XLSX.utils.book_append_sheet(out,ns,name);
+        merged++;
+      });
+
+      setProg(100);
+      plog(`✓ 完成！${merged}張工作表　數值加總:${summed.toLocaleString()}格　公式保留:${kept.toLocaleString()}格`,'ok');
+
+      mergedWb = out;
+      document.getElementById('btn-download').disabled = false;
+      document.getElementById('btn-merge').disabled = false;
+
+      renderSummaryView();
+    } catch(err) {
+      plog('✗ 合併失敗：'+err.message,'err');
+      document.getElementById('btn-merge').disabled = false;
+    }
+  }, 80);
+}
+
+// ── Summary view (merged result) ──────────────────────────────
+function renderSummaryView() {
+  if (!mergedWb) return;
+  document.getElementById('summary-empty').style.display = 'none';
+  const sc = document.getElementById('summary-content');
+  sc.style.display = 'flex';
+  sc.style.flexDirection = 'column';
+  sc.style.flex = '1';
+  sc.style.overflow = 'hidden';
+
+  const nav = document.getElementById('summary-sheet-nav');
+  nav.innerHTML = '';
+  mergedWb.SheetNames.forEach((name,i) => {
+    const t = document.createElement('div');
+    t.className = 'sheet-tab' + (i===0?' active':'');
+    t.textContent = name;
+    t.onclick = () => goSummarySheet(i);
+    nav.appendChild(t);
+  });
+  goSummarySheet(0);
+  switchTab('summary');
+}
+
+function goSummarySheet(i) {
+  currentSummarySheet = i;
+  document.querySelectorAll('#summary-sheet-nav .sheet-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  const sheet = mergedWb.Sheets[mergedWb.SheetNames[i]];
+  document.getElementById('summary-table-wrap').innerHTML = '';
+  if (!sheet || !sheet['!ref']) {
+    document.getElementById('summary-table-wrap').innerHTML = '<div style="padding:32px;color:#aaa;font-family:monospace;font-size:.75rem;">此工作表無資料</div>';
+    return;
+  }
+  document.getElementById('summary-table-wrap').appendChild(buildTable(sheet, mergedWb.SheetNames[i], null));
+}
+
+// ── Detail view (per file) ────────────────────────────────────
+function renderDetailNav() {
+  const empty = document.getElementById('detail-empty');
+  const content = document.getElementById('detail-content');
+  if (uploaded.length === 0) { empty.style.display='flex'; content.style.display='none'; return; }
+
+  empty.style.display = 'none';
+  content.style.display = 'flex';
+  content.style.flexDirection = 'column';
+  content.style.flex = '1';
+  content.style.overflow = 'hidden';
+
+  const nav = document.getElementById('detail-sheet-nav');
+  const baseSheets = uploaded[0].workbook.SheetNames;
+  nav.innerHTML = '';
+
+  // File selector
+  const fileSel = document.createElement('select');
+  fileSel.style.cssText = 'border:1px solid #ddd;padding:4px 8px;font-size:.7rem;font-family:monospace;margin-right:8px;background:#fff;cursor:pointer;flex-shrink:0;';
+  uploaded.forEach((f,i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = f.name.replace(/\.(xls|xlsx)$/i,'');
+    fileSel.appendChild(opt);
+  });
+  fileSel.onchange = () => { currentDetailFile = parseInt(fileSel.value); goDetailSheet(currentDetailSheet); };
+  nav.appendChild(fileSel);
+
+  baseSheets.forEach((name,i) => {
+    const t = document.createElement('div');
+    t.className = 'sheet-tab' + (i===0?' active':'');
+    t.textContent = name;
+    t.onclick = () => { currentDetailSheet=i; goDetailSheet(i); };
+    nav.appendChild(t);
+  });
+
+  goDetailSheet(0);
+}
+
+function goDetailSheet(i) {
+  currentDetailSheet = i;
+  document.querySelectorAll('#detail-sheet-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active',j===i));
+  const wb = uploaded[currentDetailFile]?.workbook;
+  if (!wb) return;
+  const sheetName = wb.SheetNames[i];
+  const sheet = wb.Sheets[sheetName];
+  const wrap = document.getElementById('detail-table-wrap');
+  wrap.innerHTML = '';
+  if (!sheet || !sheet['!ref']) {
+    wrap.innerHTML = '<div style="padding:32px;color:#aaa;font-family:monospace;font-size:.75rem;">此工作表無資料</div>';
+    return;
+  }
+  wrap.appendChild(buildTable(sheet, sheetName, uploaded[currentDetailFile].name));
+}
+
+// ── Build table from sheet ────────────────────────────────────
+function buildTable(sheet, sheetName, source) {
+  const range = XLSX.utils.decode_range(sheet['!ref']);
+  const maxRows = Math.min(range.e.r - range.s.r + 1, 200); // cap at 200 rows for perf
+  const maxCols = Math.min(range.e.c - range.s.c + 1, 30);
+
+  const table = document.createElement('table');
+  table.className = 'sheet-table';
+
+  // Header row (column letters)
+  const thead = document.createElement('thead');
+  const hrow = document.createElement('tr');
+  const rh = document.createElement('th'); rh.textContent = ''; hrow.appendChild(rh);
+  for (let c=range.s.c; c<range.s.c+maxCols; c++) {
+    const th = document.createElement('th');
+    th.textContent = XLSX.utils.encode_col(c);
+    hrow.appendChild(th);
+  }
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  for (let r=range.s.r; r<range.s.r+maxRows; r++) {
+    const tr = document.createElement('tr');
+    const rowHead = document.createElement('td');
+    rowHead.className = 'row-head'; rowHead.textContent = r+1;
+    tr.appendChild(rowHead);
+
+    for (let c=range.s.c; c<range.s.c+maxCols; c++) {
+      const td = document.createElement('td');
+      const addr = XLSX.utils.encode_cell({r,c});
+      const cell = sheet[addr];
+      if (cell) {
+        if (hasFx(cell)) {
+          td.className = 'formula';
+          td.title = '公式: =' + cell.f;
+          td.textContent = cell.v != null ? fmtNum(cell.v) : '';
+        } else if (cell.t === 'n') {
+          td.className = 'num';
+          td.textContent = fmtNum(cell.v);
+        } else {
+          td.textContent = cell.w || cell.v || '';
+        }
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+
+  if (maxRows < range.e.r - range.s.r + 1) {
+    const note = document.createElement('div');
+    note.style.cssText = 'padding:8px 16px;font-size:.65rem;color:#aaa;font-family:monospace;border-top:1px solid #eee;';
+    note.textContent = `（僅顯示前 200 列，共 ${range.e.r - range.s.r + 1} 列）`;
+    const wrap = document.createElement('div');
+    wrap.appendChild(table);
+    wrap.appendChild(note);
+    return wrap;
+  }
+
+  return table;
+}
+
+function fmtNum(v) {
+  if (v == null) return '';
+  if (!isFinite(v)) return v.toString();
+  if (Number.isInteger(v)) return v.toLocaleString('zh-TW');
+  return parseFloat(v.toFixed(4)).toLocaleString('zh-TW');
+}
+
+// ── Download ──────────────────────────────────────────────────
+function downloadResult() {
+  if (!mergedWb) return;
+  XLSX.writeFile(mergedWb, '三院合併決算表_114年度.xlsx');
+}
+</script>
+</body>
+</html>
