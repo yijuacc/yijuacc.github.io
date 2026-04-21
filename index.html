@@ -22,19 +22,17 @@
   --text2: #2e2820;
   --success: #2e7d5a;
   --danger: #a83232;
-  --num-color: #1a3a6b;
-  --neg-color: #8b1a1a;
-  --formula-color: #2d5a1a;
+  --num-pos: #1a3a6b;
+  --num-neg: #8b1a1a;
+  --num-fx: #2d5a1a;
   --sidebar-w: 300px;
 }
  
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(--paper); color: var(--text); overflow: hidden; }
  
-/* ── App Layout ── */
 .app { display: grid; grid-template-rows: 48px 1fr; grid-template-columns: var(--sidebar-w) 1fr; height: 100vh; }
  
-/* ── Topbar ── */
 .topbar {
   grid-column: 1/-1; background: var(--navy);
   display: flex; align-items: center; padding: 0 20px; gap: 14px;
@@ -45,16 +43,12 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
 .topbar-title { font-size: 0.9rem; font-weight: 600; color: #fff; letter-spacing: 0.06em; }
 .topbar-year { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.35); letter-spacing: 0.1em; }
  
-/* ── Sidebar ── */
 .sidebar {
   background: var(--white); border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; overflow-y: auto;
-  padding: 24px 20px 28px;
+  display: flex; flex-direction: column; overflow-y: auto; padding: 24px 20px 28px;
 }
- 
 .step-block { padding-bottom: 22px; border-bottom: 1px solid var(--border2); margin-bottom: 22px; }
 .step-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
- 
 .step-label { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
 .step-num {
   width: 20px; height: 20px; background: var(--navy); color: var(--gold);
@@ -63,11 +57,9 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
 }
 .step-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; color: var(--navy); text-transform: uppercase; }
  
-/* Drop zone */
 .drop-zone {
-  border: 2px dashed var(--border); padding: 24px 12px;
-  text-align: center; cursor: pointer; transition: all 0.2s;
-  background: var(--paper); position: relative; border-radius: 2px;
+  border: 2px dashed var(--border); padding: 24px 12px; text-align: center;
+  cursor: pointer; transition: all 0.2s; background: var(--paper); position: relative;
 }
 .drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: #fdf8ee; }
 .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -76,45 +68,24 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
 .drop-sub { font-size: 0.62rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
  
 .file-chips { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-.chip {
-  display: flex; align-items: center; gap: 7px;
-  background: var(--paper); border: 1px solid var(--border2); padding: 6px 9px;
-  animation: chipin 0.15s ease;
-}
+.chip { display: flex; align-items: center; gap: 7px; background: var(--paper); border: 1px solid var(--border2); padding: 6px 9px; animation: chipin 0.15s ease; }
 @keyframes chipin { from { opacity:0; transform:translateX(-5px); } to { opacity:1; transform:none; } }
 .chip-name { flex: 1; font-size: 0.72rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); }
 .chip-sheets { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--muted); flex-shrink: 0; }
-.chip-rm { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 0 2px; transition: color 0.15s; flex-shrink: 0; }
+.chip-rm { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 0 2px; transition: color 0.15s; }
 .chip-rm:hover { color: var(--danger); }
  
-.upload-note {
-  margin-top: 8px; padding: 6px 9px; font-size: 0.62rem;
-  font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border2);
-  text-align: center; color: var(--muted);
-}
+.upload-note { margin-top: 8px; padding: 6px 9px; font-size: 0.62rem; font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border2); text-align: center; color: var(--muted); }
 .upload-note.ok { border-color: var(--success); color: var(--success); background: #f0f9f4; }
 .upload-note.warn { border-color: var(--gold); color: #7a6020; background: #fdf8ee; }
  
-.btn-primary {
-  width: 100%; background: var(--navy); color: #fff; border: none;
-  padding: 13px; font-family: 'Noto Serif TC', serif;
-  font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em;
-  cursor: pointer; transition: background 0.2s;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-}
+.btn-primary { width: 100%; background: var(--navy); color: #fff; border: none; padding: 13px; font-family: 'Noto Serif TC', serif; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 7px; }
 .btn-primary:hover:not(:disabled) { background: var(--navy2); }
 .btn-primary:disabled { background: #b8b0a4; cursor: not-allowed; }
  
-.btn-secondary {
-  width: 100%; background: var(--gold); color: var(--navy); border: none;
-  padding: 12px; font-family: 'Noto Serif TC', serif;
-  font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em;
-  cursor: pointer; transition: background 0.2s; margin-top: 9px;
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-}
+.btn-secondary { width: 100%; background: var(--gold); color: var(--navy); border: none; padding: 12px; font-family: 'Noto Serif TC', serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; cursor: pointer; transition: background 0.2s; margin-top: 9px; display: flex; align-items: center; justify-content: center; gap: 7px; }
 .btn-secondary:hover:not(:disabled) { background: var(--gold-light); }
 .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
- 
 .btn-note { font-size: 0.6rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; text-align: center; margin-top: 5px; }
  
 .progress-wrap { margin-top: 10px; display: none; }
@@ -126,150 +97,90 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
 .progress-text .pl.ok { color: var(--success); }
 .progress-text .pl.err { color: var(--danger); }
  
-/* ── Right Panel ── */
 .right-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--paper); }
  
-.tab-bar {
-  display: flex; align-items: stretch; background: var(--white);
-  border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0;
-}
-.tab {
-  padding: 12px 18px; font-size: 0.74rem; font-weight: 600;
-  letter-spacing: 0.07em; color: var(--muted); cursor: pointer;
-  border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none;
-}
+.tab-bar { display: flex; align-items: stretch; background: var(--white); border-bottom: 1px solid var(--border); padding: 0 20px; flex-shrink: 0; }
+.tab { padding: 12px 18px; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.07em; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none; }
 .tab:hover { color: var(--navy); }
 .tab.active { color: var(--navy); border-bottom-color: var(--gold); }
  
 .tab-content { flex: 1; overflow: hidden; display: none; }
 .tab-content.active { display: flex; flex-direction: column; }
  
-/* Empty state */
-.empty-state {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 10px; color: var(--muted);
-}
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--muted); }
 .empty-icon { font-size: 2.5rem; opacity: 0.25; }
 .empty-text { font-size: 0.75rem; letter-spacing: 0.07em; font-family: 'JetBrains Mono', monospace; }
  
-/* Sheet nav strip */
-.sheet-nav {
-  display: flex; align-items: center; background: var(--white);
-  border-bottom: 1px solid var(--border); padding: 0 12px;
-  overflow-x: auto; flex-shrink: 0; gap: 0;
-}
-.sheet-nav::-webkit-scrollbar { height: 3px; }
-.sheet-nav::-webkit-scrollbar-thumb { background: var(--border); }
-.sheet-tab {
-  padding: 8px 12px; font-size: 0.64rem; font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.04em; color: var(--muted); cursor: pointer;
-  border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.12s; flex-shrink: 0;
-}
-.sheet-tab:hover { color: var(--navy); }
-.sheet-tab.active { color: var(--navy); border-bottom-color: var(--gold); font-weight: 600; }
+.sheet-nav { display: flex; flex-wrap: wrap; align-content: flex-start; background: var(--white); border-bottom: 1px solid var(--border); padding: 4px 8px 0; flex-shrink: 0; }
+.sheet-nav::-webkit-scrollbar { display: none; }
+.sheet-nav::-webkit-scrollbar-thumb { display: none; }
+.sheet-tab { padding: 5px 11px 4px; font-size: 0.63rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.12s; flex-shrink: 0; margin-bottom: 4px; }
+.sheet-tab:hover { color: var(--navy); background: #f5f0e6; }
+.sheet-tab.active { color: var(--navy); border-bottom-color: var(--gold); font-weight: 600; background: #fdf8ee; }
  
-/* File selector in detail nav */
-.file-sel {
-  border: 1px solid var(--border2); padding: 4px 8px; font-size: 0.65rem;
-  font-family: 'JetBrains Mono', monospace; background: var(--white);
-  cursor: pointer; flex-shrink: 0; margin-right: 8px; color: var(--text2);
-}
+.file-sel { border: 1px solid var(--border2); padding: 4px 8px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; background: var(--white); cursor: pointer; flex-shrink: 0; margin-right: 8px; color: var(--text2); }
  
-/* ── THE TABLE ── */
 .table-wrap { flex: 1; overflow: auto; }
 .table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
  
-/* Main data table */
-.data-table {
+/* ── Decision Table ── */
+.dtable {
   border-collapse: collapse;
   font-size: 0.72rem;
   min-width: 100%;
   table-layout: fixed;
 }
+.dtable .col-subject { width: 240px; min-width: 200px; }
+.dtable .col-amt { width: 110px; }
+.dtable .col-pct { width: 58px; }
  
-/* Column widths */
-.data-table .col-subject { width: 220px; }
-.data-table .col-amount  { width: 108px; }
-.data-table .col-pct     { width: 62px; }
- 
-.data-table thead th {
-  background: var(--navy);
-  color: rgba(255,255,255,0.88);
-  padding: 7px 8px;
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
-  font-weight: 500;
-  position: sticky; top: 0; z-index: 10;
-  border-right: 1px solid rgba(255,255,255,0.08);
-  text-align: center;
-  white-space: nowrap;
-  font-family: 'Noto Serif TC', serif;
+.dtable thead th {
+  background: var(--navy); color: rgba(255,255,255,0.9);
+  padding: 7px 10px; font-size: 0.62rem; letter-spacing: 0.06em;
+  font-weight: 500; position: sticky; top: 0; z-index: 10;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  text-align: center; white-space: nowrap;
 }
-.data-table thead th.col-subject { text-align: left; padding-left: 12px; }
+.dtable thead th.col-subject { text-align: left; padding-left: 14px; }
+.dtable thead th.sub-amt { font-weight: 400; color: rgba(255,255,255,0.7); font-size: 0.58rem; }
  
-.data-table tbody td {
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--border2);
-  border-right: 1px solid var(--border2);
-  color: var(--text);
-  vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.dtable tbody td {
+  padding: 5px 10px; border-bottom: 1px solid var(--border2); border-right: 1px solid var(--border2);
+  color: var(--text); vertical-align: middle; overflow: hidden; text-overflow: ellipsis;
 }
  
-/* Subject cell with indent */
-.data-table td.subject {
-  font-family: 'Noto Serif TC', serif;
-  font-size: 0.71rem;
-  color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.data-table td.subject.lvl0 { font-weight: 700; padding-left: 8px; background: #eeeade; color: var(--navy); }
-.data-table td.subject.lvl1 { font-weight: 600; padding-left: 20px; }
-.data-table td.subject.lvl2 { font-weight: 400; padding-left: 36px; }
-.data-table td.subject.lvl3 { font-weight: 400; padding-left: 52px; color: var(--muted); }
+/* Subject column styles by indent level */
+.dtable td.subj { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'Noto Serif TC', serif; }
+.dtable td.subj.l0 { font-weight: 700; padding-left: 10px; background: #e8e3d4; color: var(--navy); font-size: 0.73rem; }
+.dtable td.subj.l1 { font-weight: 600; padding-left: 22px; font-size: 0.72rem; }
+.dtable td.subj.l2 { font-weight: 400; padding-left: 36px; font-size: 0.71rem; }
+.dtable td.subj.l3 { font-weight: 400; padding-left: 50px; font-size: 0.69rem; color: var(--muted); }
  
-.data-table tbody tr.lvl0 td { background: #eeeade; }
-.data-table tbody tr.lvl0:hover td { background: #e5e0d0; }
-.data-table tbody tr:not(.lvl0):hover td { background: #f7f3ea; }
+.dtable tbody tr.l0 > td { background: #e8e3d4; }
+.dtable tbody tr.l0:hover > td { background: #dedad0; }
+.dtable tbody tr:not(.l0):hover > td { background: #f5f0e6; }
  
 /* Number cells */
-.data-table td.num {
-  text-align: right;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.69rem;
-  color: var(--num-color);
-  white-space: nowrap;
+.dtable td.amt {
+  text-align: right; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.69rem; white-space: nowrap; color: var(--num-pos);
 }
-.data-table td.num.neg { color: var(--neg-color); }
-.data-table td.num.zero { color: var(--muted); }
-.data-table td.num.formula-val { color: var(--formula-color); }
-.data-table td.pct {
-  text-align: right;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.64rem;
-  color: var(--muted);
-  white-space: nowrap;
+.dtable td.amt.neg { color: var(--num-neg); }
+.dtable td.amt.zero { color: #ccc; }
+.dtable td.amt.fx { color: var(--num-fx); }
+.dtable td.pct {
+  text-align: right; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.63rem; white-space: nowrap; color: var(--muted);
 }
-.data-table td.pct.neg { color: var(--neg-color); }
+.dtable td.pct.neg { color: var(--num-neg); }
  
 /* Sheet list */
 .sheet-list-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; }
 .sheet-list-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
-.sheet-list-table th {
-  text-align: left; padding: 7px 14px; font-size: 0.6rem;
-  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em;
-  color: var(--muted); border-bottom: 2px solid var(--border);
-}
+.sheet-list-table th { text-align: left; padding: 7px 14px; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; color: var(--muted); border-bottom: 2px solid var(--border); }
 .sheet-list-table td { padding: 8px 14px; border-bottom: 1px solid var(--border2); font-family: 'JetBrains Mono', monospace; }
 .sheet-list-table tr:hover td { background: #f5f0e4; cursor: pointer; }
-.slt-num { width: 36px; color: var(--muted); font-size: 0.62rem; }
-.slt-name { font-weight: 600; color: var(--navy); }
-.slt-cells { color: var(--muted); font-size: 0.65rem; }
-.slt-fmla { color: var(--formula-color); font-size: 0.65rem; }
 .badge { display: inline-block; padding: 2px 6px; font-size: 0.58rem; letter-spacing: 0.05em; }
 .badge-ok { background: #eef7f2; color: var(--success); border: 1px solid #b8dece; }
 .badge-empty { background: #f5f5f5; color: var(--muted); border: 1px solid var(--border); }
@@ -322,45 +233,27 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
       <div class="tab" onclick="switchTab('sheets')">工作表清單</div>
     </div>
  
-    <!-- 加總總覽 -->
     <div class="tab-content active" id="tab-summary">
-      <div class="empty-state" id="summary-empty">
-        <span class="empty-icon">📊</span>
-        <span class="empty-text">合併後將顯示三院加總數據</span>
-      </div>
+      <div class="empty-state" id="summary-empty"><span class="empty-icon">📊</span><span class="empty-text">合併後將顯示三院加總數據</span></div>
       <div id="summary-inner" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
         <div class="sheet-nav" id="summary-nav"></div>
         <div class="table-wrap" id="summary-wrap"></div>
       </div>
     </div>
  
-    <!-- 各分院明細 -->
     <div class="tab-content" id="tab-detail">
-      <div class="empty-state" id="detail-empty">
-        <span class="empty-icon">🏥</span>
-        <span class="empty-text">上傳分院檔案後查看各院明細</span>
-      </div>
+      <div class="empty-state" id="detail-empty"><span class="empty-icon">🏥</span><span class="empty-text">上傳分院檔案後查看各院明細</span></div>
       <div id="detail-inner" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
         <div class="sheet-nav" id="detail-nav"></div>
         <div class="table-wrap" id="detail-wrap"></div>
       </div>
     </div>
  
-    <!-- 工作表清單 -->
     <div class="tab-content" id="tab-sheets">
-      <div class="empty-state" id="sheets-empty">
-        <span class="empty-icon">📋</span>
-        <span class="empty-text">上傳檔案後顯示工作表清單</span>
-      </div>
+      <div class="empty-state" id="sheets-empty"><span class="empty-icon">📋</span><span class="empty-text">上傳檔案後顯示工作表清單</span></div>
       <div class="sheet-list-wrap" id="sheet-list-wrap" style="display:none;">
         <table class="sheet-list-table">
-          <thead><tr>
-            <th class="slt-num">#</th>
-            <th>工作表名稱</th>
-            <th>儲存格數</th>
-            <th>公式格數</th>
-            <th>狀態</th>
-          </tr></thead>
+          <thead><tr><th style="width:36px">#</th><th>工作表名稱</th><th>儲存格數</th><th>公式格數</th><th>狀態</th></tr></thead>
           <tbody id="sheet-list-body"></tbody>
         </table>
       </div>
@@ -379,7 +272,7 @@ let curDetailSheet  = 0;
 let curDetailFile   = 0;
  
 // ══════════════════════════════════════════════════════
-// Upload
+// Upload & DnD
 // ══════════════════════════════════════════════════════
 const dz = document.getElementById('drop-zone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
@@ -429,18 +322,18 @@ function updateState() {
   const btn  = document.getElementById('btn-merge');
   const mn   = document.getElementById('merge-note');
   note.style.display = n > 0 ? 'block' : 'none';
-  if (n === 0) { btn.disabled = true; mn.textContent = '請先上傳分院月報'; }
+  if (n === 0) { btn.disabled=true; mn.textContent='請先上傳分院月報'; }
   else if (n === 1) {
-    note.className = 'upload-note warn'; note.textContent = '⚠ 需至少 2 份才能合併';
-    btn.disabled = true; mn.textContent = '還需上傳更多分院';
+    note.className='upload-note warn'; note.textContent='⚠ 需至少 2 份才能合併';
+    btn.disabled=true; mn.textContent='還需上傳更多分院';
   } else {
-    note.className = 'upload-note ok'; note.textContent = `✓ 已載入 ${n} 份，可開始合併`;
-    btn.disabled = false; mn.textContent = `合併 ${n} 間分院的所有工作表`;
+    note.className='upload-note ok'; note.textContent=`✓ 已載入 ${n} 份，可開始合併`;
+    btn.disabled=false; mn.textContent=`合併 ${n} 間分院的所有工作表`;
   }
 }
  
 // ══════════════════════════════════════════════════════
-// Tab
+// Tabs
 // ══════════════════════════════════════════════════════
 function switchTab(t) {
   ['summary','detail','sheets'].forEach(k => {
@@ -461,10 +354,8 @@ function plog(msg, cls='') {
   div.appendChild(sp); div.scrollTop=div.scrollHeight;
 }
 function setProg(p) { document.getElementById('progress-fill').style.width=p+'%'; }
- 
-function isNum(c)  { return c && c.t==='n' && c.v != null; }
-function hasFx(c)  { return c && typeof c.f==='string' && c.f.length>0; }
- 
+function isNum(c)   { return c && c.t==='n' && c.v != null; }
+function hasFx(c)   { return c && typeof c.f==='string' && c.f.length>0; }
 function fixTitle(s) {
   if (typeof s !== 'string') return s;
   let r = s.replace(/臺北榮民總醫院作業基金－\S+分院/g, '臺北榮民總醫院作業基金－三院合併');
@@ -503,37 +394,26 @@ function mergeFiles() {
             const addr = XLSX.utils.encode_cell({r,c});
             const bc = bs[addr];
             if (!bc) continue;
- 
             const nc = Object.assign({}, bc);
  
-            // Fix title text in first 4 rows
-            if (r < 4 && nc.t === 's' && typeof nc.v === 'string') {
+            if (r < 4 && nc.t==='s' && typeof nc.v==='string') {
               nc.v = fixTitle(nc.v);
               if (nc.w) nc.w = fixTitle(nc.w);
             }
  
             if (isNum(bc)) {
-              // Sum numeric value across all files
+              // Always sum numeric cells (whether formula or not)
+              // Keep formula string but update cached value to sum
               let total = bc.v || 0;
               for (let wi=1; wi<allS.length; wi++) {
                 const oc = allS[wi]?.[addr];
                 if (oc && isNum(oc)) total += (oc.v || 0);
               }
               nc.v = total;
-              delete nc.w; // clear cached formatted string
- 
-              if (hasFx(bc)) {
-                // Formula cell: keep formula BUT also store the correct summed value
-                // So preview shows right number; Excel recalculates on open
-                kept++;
-              } else {
-                summed++;
-              }
-              ns[addr] = nc;
-              continue;
+              delete nc.w;
+              hasFx(bc) ? kept++ : summed++;
             }
  
-            // Text / other
             ns[addr] = nc;
           }
         }
@@ -548,7 +428,7 @@ function mergeFiles() {
       });
  
       setProg(100);
-      plog(`✓ ${merged}張工作表　純數值加總:${summed.toLocaleString()}格　公式+加總:${kept.toLocaleString()}格`, 'ok');
+      plog(`✓ ${merged}張工作表完成　數值加總:${summed.toLocaleString()}格　公式更新:${kept.toLocaleString()}格`, 'ok');
  
       mergedWb = out;
       document.getElementById('btn-download').disabled = false;
@@ -563,289 +443,234 @@ function mergeFiles() {
 }
  
 // ══════════════════════════════════════════════════════
-// Summary View (merged)
+// Column Layout Auto-Detection
+//
+// Each sheet has a different column layout. We detect:
+// 1. subjectCols: which cols 0-5 carry subject text (indent levels)
+// 2. dataCols: the number columns, paired as (amount, pct) groups
+//    detected by scanning header rows for group labels
 // ══════════════════════════════════════════════════════
-function renderSummaryView() {
-  if (!mergedWb) return;
-  document.getElementById('summary-empty').style.display = 'none';
-  const inner = document.getElementById('summary-inner');
-  inner.style.display = 'flex';
  
-  const nav = document.getElementById('summary-nav');
-  nav.innerHTML = '';
-  mergedWb.SheetNames.forEach((name,i) => {
-    const t = document.createElement('div');
-    t.className = 'sheet-tab' + (i===0?' active':'');
-    t.textContent = name;
-    t.onclick = () => goSummarySheet(i);
-    nav.appendChild(t);
-  });
-  goSummarySheet(0);
-  switchTab('summary');
-}
- 
-function goSummarySheet(i) {
-  curSummarySheet = i;
-  document.querySelectorAll('#summary-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active', j===i));
-  const sheet = mergedWb.Sheets[mergedWb.SheetNames[i]];
-  const wrap = document.getElementById('summary-wrap');
-  wrap.innerHTML = '';
-  if (!sheet || !sheet['!ref']) {
-    wrap.innerHTML = '<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
-    return;
-  }
-  wrap.appendChild(buildSheet(sheet));
-}
- 
-// ══════════════════════════════════════════════════════
-// Detail View (per file)
-// ══════════════════════════════════════════════════════
-function renderDetailNav() {
-  const empty = document.getElementById('detail-empty');
-  const inner = document.getElementById('detail-inner');
-  if (uploaded.length === 0) { empty.style.display='flex'; inner.style.display='none'; return; }
-  empty.style.display='none'; inner.style.display='flex';
- 
-  const nav = document.getElementById('detail-nav');
-  const baseSheets = uploaded[0].workbook.SheetNames;
-  nav.innerHTML = '';
- 
-  const sel = document.createElement('select');
-  sel.className = 'file-sel';
-  uploaded.forEach((f,i) => {
-    const o = document.createElement('option');
-    o.value = i; o.textContent = f.name.replace(/\.(xls|xlsx)$/i,'');
-    sel.appendChild(o);
-  });
-  sel.onchange = () => { curDetailFile = parseInt(sel.value); goDetailSheet(curDetailSheet); };
-  nav.appendChild(sel);
- 
-  baseSheets.forEach((name,i) => {
-    const t = document.createElement('div');
-    t.className = 'sheet-tab' + (i===0?' active':'');
-    t.textContent = name;
-    t.onclick = () => { curDetailSheet=i; goDetailSheet(i); };
-    nav.appendChild(t);
-  });
-  goDetailSheet(0);
-}
- 
-function goDetailSheet(i) {
-  curDetailSheet = i;
-  document.querySelectorAll('#detail-nav .sheet-tab').forEach((t,j) => t.classList.toggle('active', j===i));
-  const wb = uploaded[curDetailFile]?.workbook;
-  if (!wb) return;
-  const sheet = wb.Sheets[wb.SheetNames[i]];
-  const wrap = document.getElementById('detail-wrap');
-  wrap.innerHTML = '';
-  if (!sheet || !sheet['!ref']) {
-    wrap.innerHTML = '<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
-    return;
-  }
-  wrap.appendChild(buildSheet(sheet));
-}
- 
-// ══════════════════════════════════════════════════════
-// Sheet List
-// ══════════════════════════════════════════════════════
-function renderSheetList() {
-  const empty = document.getElementById('sheets-empty');
-  const wrap  = document.getElementById('sheet-list-wrap');
-  if (uploaded.length === 0) { empty.style.display='flex'; wrap.style.display='none'; return; }
-  empty.style.display='none'; wrap.style.display='block';
- 
-  const body = document.getElementById('sheet-list-body');
-  body.innerHTML = '';
-  uploaded[0].workbook.SheetNames.forEach((name,i) => {
-    const s = uploaded[0].workbook.Sheets[name];
-    let cells=0, fmlas=0;
-    if (s && s['!ref']) {
-      const r = XLSX.utils.decode_range(s['!ref']);
-      for (let rr=r.s.r; rr<=r.e.r; rr++) for (let cc=r.s.c; cc<=r.e.c; cc++) {
-        const c = s[XLSX.utils.encode_cell({r:rr,c:cc})];
-        if (c) { cells++; if (c.f) fmlas++; }
+function detectLayout(sheet, range) {
+  // Step 1: find the rightmost column that has any subject text
+  // Subject columns are text-only columns to the left of the first consistent number column
+  let firstNumCol = range.e.c;
+  const numColCount = {};
+  for (let r = range.s.r; r <= Math.min(range.s.r + 30, range.e.r); r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.t === 'n') {
+        numColCount[c] = (numColCount[c] || 0) + 1;
       }
     }
-    const isEmpty = !s || !s['!ref'];
-    const tr = document.createElement('tr');
-    tr.onclick = () => { if(mergedWb) { switchTab('summary'); goSummarySheet(i); } };
-    tr.innerHTML = `<td class="slt-num">${i+1}</td>
-      <td class="slt-name">${name}</td>
-      <td class="slt-cells">${cells.toLocaleString()}</td>
-      <td class="slt-fmla">${fmlas>0?fmlas.toLocaleString():'-'}</td>
-      <td><span class="badge ${isEmpty?'badge-empty':'badge-ok'}">${isEmpty?'空白':'資料'}</span></td>`;
-    body.appendChild(tr);
-  });
+  }
+  // firstNumCol = smallest col with ≥3 numeric values
+  const numCols = Object.keys(numColCount)
+    .map(Number)
+    .filter(c => numColCount[c] >= 3)
+    .sort((a,b) => a-b);
+ 
+  if (numCols.length === 0) return null; // no numeric data
+ 
+  firstNumCol = numCols[0];
+  const subjectDepth = firstNumCol; // cols 0..firstNumCol-1 are subject columns
+ 
+  // Step 2: read header rows to identify column group labels
+  // Scan rows range.s.r to range.s.r+6 for text above the numeric columns
+  const colLabel = {};
+  for (let r = range.s.r; r <= Math.min(range.s.r + 6, range.e.r); r++) {
+    for (let c = firstNumCol; c <= range.e.c; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.t === 's') {
+        const txt = (cell.v || '').replace(/\s+/g, '');
+        if (txt && !colLabel[c]) colLabel[c] = txt;
+      }
+    }
+  }
+ 
+  // Step 3: build column groups from numCols
+  // Group consecutive: if a col is amount and next is %, pair them
+  // Heuristic: a "%" column has small values (-100..100) and labeled '％'
+  const pctCols = new Set();
+  for (const c of numCols) {
+    const lbl = colLabel[c] || '';
+    if (lbl === '％' || lbl === '%') { pctCols.add(c); continue; }
+    // Also detect by value range: if mostly small numbers (-100..100), likely pct
+    let pctVotes = 0, total = 0;
+    for (let r = range.s.r + 2; r <= Math.min(range.s.r + 20, range.e.r); r++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.t === 'n' && cell.v !== 0) {
+        total++;
+        if (Math.abs(cell.v) <= 200) pctVotes++;
+      }
+    }
+    if (total > 0 && pctVotes / total > 0.8) pctCols.add(c);
+  }
+ 
+  // Build groups: each group = { label, amtCol, pctCol }
+  const groups = [];
+  const usedCols = new Set();
+  for (const c of numCols) {
+    if (usedCols.has(c) || pctCols.has(c)) continue;
+    // Try to pair with next pct col
+    const nextPct = numCols.find(nc => nc > c && pctCols.has(nc) && !usedCols.has(nc));
+    const label = colLabel[c] || `欄${c}`;
+    groups.push({ label: cleanLabel(label), amtCol: c, pctCol: nextPct });
+    usedCols.add(c);
+    if (nextPct !== undefined) usedCols.add(nextPct);
+ 
+    if (groups.length >= 5) break; // max 5 groups
+  }
+ 
+  return { subjectDepth, groups };
+}
+ 
+function cleanLabel(s) {
+  return s
+    .replace('本年度預算數', '本年度預算數')
+    .replace('本年度決算數', '本年度決算數')
+    .replace('預算數', '預算數')
+    .replace('決算數', '決算數')
+    .replace('比較增減', '比較增減')
+    .replace('上年度決算數', '上年度決算數')
+    .replace('金額', '金額');
 }
  
 // ══════════════════════════════════════════════════════
-// Core Table Builder
-// Reads the xls column layout:
-//   col 0,1,2,3 = subject text (indent levels 0-3)
-//   col 4 = 本年度預算數(金額), col 5 = %
-//   col 6 = 本年度決算數(金額), col 7 = %
-//   col 8 = 比較增減(金額),     col 9 = %
-//   col 10= 上年度決算數(金額), col 11= %
-//   col 12= internal marker (skip)
-//   col 13-16 = right-side summary (skip)
+// Build Table for a Sheet
+// showSubLevels: max indent level to show (0=top only, 1=+one level, etc.)
 // ══════════════════════════════════════════════════════
-const KNOWN_SHEETS = {
-  // sheets that follow the standard 4-col subject + 4×(金額,%) layout
-  standard: ['收支餘絀']
-};
- 
-function buildSheet(sheet) {
+function buildSheet(sheet, showSubLevels) {
+  if (showSubLevels === undefined) showSubLevels = 1; // default: show lvl0 + lvl1 only
   const range = XLSX.utils.decode_range(sheet['!ref']);
-  const nRows = range.e.r - range.s.r + 1;
-  const nCols = range.e.c - range.s.c + 1;
+  const layout = detectLayout(sheet, range);
  
-  // Detect if this is a "decision statement" with col 0-3 indent pattern
-  // by checking whether col 4 has numbers and col 0-3 have text in most rows
-  const isDecisionSheet = detectDecisionLayout(sheet, range);
- 
-  if (isDecisionSheet) {
-    return buildDecisionTable(sheet, range);
-  } else {
+  if (!layout || layout.groups.length === 0) {
     return buildGenericTable(sheet, range);
   }
-}
  
-function detectDecisionLayout(sheet, range) {
-  // Check if col 0-3 are mostly text and col 4+ are numbers
-  let textIn0to3 = 0, numIn4plus = 0, total = 0;
-  for (let r=range.s.r; r<=Math.min(range.s.r+20, range.e.r); r++) {
-    for (let c=0; c<=3; c++) {
-      const cell = sheet[XLSX.utils.encode_cell({r,c})];
-      if (cell && cell.t==='s') textIn0to3++;
-    }
-    for (let c=4; c<=11; c++) {
-      const cell = sheet[XLSX.utils.encode_cell({r,c})];
-      if (cell && cell.t==='n') numIn4plus++;
-    }
-    total++;
-  }
-  return textIn0to3 > 3 && numIn4plus > 5;
-}
+  const { subjectDepth, groups } = layout;
  
-function buildDecisionTable(sheet, range) {
-  // Find header row (row with 金額/% labels or 科目)
-  // Typically rows 0-5 are header; data starts at ~row 6
-  let dataStartRow = range.s.r;
-  for (let r=range.s.r; r<=Math.min(range.s.r+8, range.e.r); r++) {
-    const c0 = sheet[XLSX.utils.encode_cell({r,c:range.s.c})];
-    if (c0 && c0.t==='s' && /科目/.test(c0.v)) { dataStartRow = r+2; break; }
+  // Find data start row:
+  // Strategy: skip rows 0-3 (title block), then skip any row that has NO numbers
+  // in the detected data columns. First row that has at least one number in groups = data start.
+  // Also enforce minimum skip of 4 rows (title block is always rows 0-3).
+  let dataStart = range.s.r + 4; // skip title block (院名, 表名, 年度, 單位)
+ 
+  // Additionally skip header rows: rows where ALL group amount columns are non-numeric
+  for (let r = range.s.r + 4; r <= Math.min(range.s.r + 12, range.e.r); r++) {
+    let hasDataNum = false;
+    for (const g of groups) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
+      if (cell && cell.t === 'n') { hasDataNum = true; break; }
+    }
+    if (hasDataNum) { dataStart = r; break; }
+    dataStart = r + 1; // keep advancing past header rows
   }
  
-  // Build column header from header rows
-  // Read rows range.s.r to dataStartRow-1 to extract column headers
-  const headerMap = {};
-  for (let r=range.s.r; r<dataStartRow; r++) {
-    for (let c=range.s.c; c<=range.e.c; c++) {
-      const cell = sheet[XLSX.utils.encode_cell({r,c})];
-      if (cell && cell.t==='s') {
-        const txt = (cell.v||'').trim();
-        if (txt) { if (!headerMap[c]) headerMap[c]=txt; else headerMap[c]+=' '+txt; }
-      }
-    }
-  }
- 
-  // Column groups: [col_amount, col_pct, label]
-  // We show: 本年度預算數(4,5), 本年度決算數(6,7), 比較增減(8,9), 上年度決算數(10,11)
-  const colGroups = [
-    { amount: range.s.c+4, pct: range.s.c+5, label: headerMap[range.s.c+4] || '本年度預算數' },
-    { amount: range.s.c+6, pct: range.s.c+7, label: headerMap[range.s.c+6] || '本年度決算數' },
-    { amount: range.s.c+8, pct: range.s.c+9, label: headerMap[range.s.c+8] || '比較增減' },
-    { amount: range.s.c+10, pct: range.s.c+11, label: headerMap[range.s.c+10] || '上年度決算數' },
-  ].filter(g => g.amount <= range.e.c);
- 
+  // Build table
   const table = document.createElement('table');
-  table.className = 'data-table';
+  table.className = 'dtable';
  
-  // thead
+  // colgroup
+  const cg = document.createElement('colgroup');
+  const cs = document.createElement('col'); cs.className='col-subject'; cg.appendChild(cs);
+  groups.forEach(g => {
+    const ca = document.createElement('col'); ca.className='col-amt'; cg.appendChild(ca);
+    if (g.pctCol !== undefined) { const cp = document.createElement('col'); cp.className='col-pct'; cg.appendChild(cp); }
+  });
+  table.appendChild(cg);
+ 
+  // thead (2 rows)
   const thead = document.createElement('thead');
-  const hr = document.createElement('tr');
+  const hr1 = document.createElement('tr');
   const th0 = document.createElement('th');
   th0.className='col-subject'; th0.textContent='科目'; th0.rowSpan=2;
-  hr.appendChild(th0);
- 
-  colGroups.forEach(g => {
+  hr1.appendChild(th0);
+  groups.forEach(g => {
     const th = document.createElement('th');
-    th.colSpan=2; th.textContent=g.label.replace(/金\s+額/,'金額');
-    hr.appendChild(th);
+    th.colSpan = g.pctCol !== undefined ? 2 : 1;
+    th.textContent = g.label;
+    hr1.appendChild(th);
   });
-  thead.appendChild(hr);
+  thead.appendChild(hr1);
  
   const hr2 = document.createElement('tr');
-  colGroups.forEach(() => {
-    const ta = document.createElement('th'); ta.className='col-amount'; ta.textContent='金額'; hr2.appendChild(ta);
-    const tp = document.createElement('th'); tp.className='col-pct';    tp.textContent='%';    hr2.appendChild(tp);
+  groups.forEach(g => {
+    const ta = document.createElement('th'); ta.className='col-amt sub-amt'; ta.textContent='金額'; hr2.appendChild(ta);
+    if (g.pctCol !== undefined) { const tp = document.createElement('th'); tp.className='col-pct sub-amt'; tp.textContent='%'; hr2.appendChild(tp); }
   });
   thead.appendChild(hr2);
   table.appendChild(thead);
  
   // tbody
   const tbody = document.createElement('tbody');
-  let maxRows = Math.min(range.e.r, dataStartRow + 300);
  
-  for (let r=dataStartRow; r<=maxRows; r++) {
-    // Determine indent level: which of col 0-3 has text
-    let subjectText = '';
+  for (let r = dataStart; r <= range.e.r; r++) {
+    // Determine subject and indent level
+    let subjectTxt = '';
     let lvl = -1;
-    for (let c=range.s.c; c<=range.s.c+3; c++) {
-      const cell = sheet[XLSX.utils.encode_cell({r,c})];
-      if (cell && (cell.t==='s' || cell.t==='n') && cell.v !== '' && cell.v != null) {
-        subjectText = String(cell.w || cell.v).trim();
-        lvl = c - range.s.c;
+    for (let ci = range.s.c; ci < range.s.c + subjectDepth; ci++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, ci})];
+      if (cell && cell.t === 's' && cell.v) {
+        subjectTxt = (cell.v || '').trim();
+        lvl = ci - range.s.c;
         break;
       }
     }
  
-    // Check if there are any numbers in this row at all
-    let hasAnyNum = false;
-    for (const g of colGroups) {
-      const c = sheet[XLSX.utils.encode_cell({r, c:g.amount})];
-      if (c && c.t==='n') { hasAnyNum=true; break; }
+    // Check if row has numbers
+    let hasAmt = false;
+    for (const g of groups) {
+      const c = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
+      if (c && c.t === 'n') { hasAmt = true; break; }
     }
  
-    // Skip rows with no subject and no numbers (spacer rows)
-    if (!subjectText && !hasAnyNum) continue;
-    // Skip pure header/annotation rows (注: etc after data)
-    if (subjectText && /^註[：:]/.test(subjectText)) break;
+    if (!subjectTxt && !hasAmt) continue;
+    if (subjectTxt && /^註[：:]/.test(subjectTxt)) break;
+ 
+    // Skip rows below showSubLevels
+    if (lvl > showSubLevels) continue;
+    // Also skip spacer rows with no subject but also no numbers to show
+    if (!subjectTxt && !hasAmt) continue;
  
     const tr = document.createElement('tr');
-    if (lvl === 0) tr.classList.add('lvl0');
+    if (lvl === 0) tr.classList.add('l0');
  
+    // Subject cell
     const tdS = document.createElement('td');
-    tdS.className = `subject lvl${Math.max(0,lvl)}`;
-    tdS.textContent = subjectText || '';
-    tdS.title = subjectText;
+    tdS.className = `subj l${Math.max(0, lvl)}`;
+    tdS.textContent = subjectTxt;
+    tdS.title = subjectTxt;
     tr.appendChild(tdS);
  
-    colGroups.forEach(g => {
-      const amtCell = sheet[XLSX.utils.encode_cell({r, c:g.amount})];
-      const pctCell = sheet[XLSX.utils.encode_cell({r, c:g.pct})];
+    // Data cells
+    groups.forEach(g => {
+      const amtCell = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
+      const pctCell = g.pctCol !== undefined ? sheet[XLSX.utils.encode_cell({r, c: g.pctCol})] : null;
  
       const tdA = document.createElement('td');
-      tdA.className = 'num';
-      if (amtCell && amtCell.t==='n' && amtCell.v != null) {
+      tdA.className = 'amt';
+      if (amtCell && amtCell.t === 'n' && amtCell.v != null) {
         const v = amtCell.v;
-        if (hasFx(amtCell)) tdA.classList.add('formula-val');
-        if (v < 0) { tdA.classList.add('neg'); tdA.textContent = '(' + fmtInt(Math.abs(v)) + ')'; }
+        if (hasFx(amtCell)) tdA.classList.add('fx');
+        if (v < 0)      { tdA.classList.add('neg'); tdA.textContent = '(' + fmtInt(Math.abs(v)) + ')'; }
         else if (v === 0) { tdA.classList.add('zero'); tdA.textContent = '-'; }
-        else tdA.textContent = fmtInt(v);
-      } else { tdA.textContent = ''; }
- 
-      const tdP = document.createElement('td');
-      tdP.className = 'pct';
-      if (pctCell && pctCell.t==='n' && pctCell.v != null) {
-        const v = pctCell.v;
-        if (v < 0) { tdP.classList.add('neg'); tdP.textContent = '(' + Math.abs(v).toFixed(2) + ')'; }
-        else if (v === 0) tdP.textContent = '-';
-        else tdP.textContent = v.toFixed(2);
-      } else { tdP.textContent = ''; }
- 
+        else              { tdA.textContent = fmtInt(v); }
+      }
       tr.appendChild(tdA);
-      tr.appendChild(tdP);
+ 
+      if (g.pctCol !== undefined) {
+        const tdP = document.createElement('td');
+        tdP.className = 'pct';
+        if (pctCell && pctCell.t === 'n' && pctCell.v != null) {
+          const v = pctCell.v;
+          if (v < 0) { tdP.classList.add('neg'); tdP.textContent = '(' + Math.abs(v).toFixed(2) + ')'; }
+          else if (v === 0) tdP.textContent = '-';
+          else tdP.textContent = v.toFixed(2);
+        }
+        tr.appendChild(tdP);
+      }
     });
  
     tbody.appendChild(tr);
@@ -855,23 +680,20 @@ function buildDecisionTable(sheet, range) {
   return table;
 }
  
+// Fallback: generic table for non-decision sheets
 function buildGenericTable(sheet, range) {
-  // Generic fallback: show all cells as-is, up to 200 rows x 30 cols
   const maxR = Math.min(range.e.r, range.s.r+199);
-  const maxC = Math.min(range.e.c, range.s.c+29);
+  const maxC = Math.min(range.e.c, range.s.c+24);
  
   const table = document.createElement('table');
-  table.className = 'data-table';
+  table.className = 'dtable';
   table.style.tableLayout = 'auto';
  
   const thead = document.createElement('thead');
   const hr = document.createElement('tr');
   const empty = document.createElement('th'); empty.style.width='32px'; hr.appendChild(empty);
   for (let c=range.s.c; c<=maxC; c++) {
-    const th = document.createElement('th');
-    th.style.minWidth='80px';
-    th.textContent = XLSX.utils.encode_col(c);
-    hr.appendChild(th);
+    const th = document.createElement('th'); th.style.minWidth='80px'; th.textContent=XLSX.utils.encode_col(c); hr.appendChild(th);
   }
   thead.appendChild(hr); table.appendChild(thead);
  
@@ -888,13 +710,13 @@ function buildGenericTable(sheet, range) {
       const td = document.createElement('td');
       if (cell) {
         if (cell.t==='n' && cell.v!=null) {
-          td.className = 'num' + (cell.v<0?' neg':'');
-          if (hasFx(cell)) td.classList.add('formula-val');
-          td.textContent = cell.v<0 ? '('+fmtNum(Math.abs(cell.v))+')' : fmtNum(cell.v);
+          td.className='amt' + (cell.v<0?' neg':'');
+          if (hasFx(cell)) td.classList.add('fx');
+          td.textContent = cell.v<0 ? '('+fmtInt(Math.abs(cell.v))+')' : fmtInt(cell.v);
         } else {
-          td.style.cssText='font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;';
+          td.style.cssText='font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;';
           td.textContent = cell.w || cell.v || '';
-          td.title = cell.w || cell.v || '';
+          td.title = String(cell.v||'');
         }
       }
       tr.appendChild(td);
@@ -906,15 +728,126 @@ function buildGenericTable(sheet, range) {
 }
  
 // ══════════════════════════════════════════════════════
-// Format helpers
+// Summary (merged result)
+// ══════════════════════════════════════════════════════
+function renderSummaryView() {
+  if (!mergedWb) return;
+  document.getElementById('summary-empty').style.display='none';
+  const inner = document.getElementById('summary-inner');
+  inner.style.display='flex';
+ 
+  const nav = document.getElementById('summary-nav');
+  nav.innerHTML='';
+  mergedWb.SheetNames.forEach((name,i) => {
+    const t = document.createElement('div');
+    t.className='sheet-tab'+(i===0?' active':'');
+    t.textContent=name;
+    t.onclick=()=>goSummarySheet(i);
+    nav.appendChild(t);
+  });
+  goSummarySheet(0);
+  switchTab('summary');
+}
+ 
+function goSummarySheet(i) {
+  curSummarySheet=i;
+  document.querySelectorAll('#summary-nav .sheet-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  const sheet = mergedWb.Sheets[mergedWb.SheetNames[i]];
+  const wrap = document.getElementById('summary-wrap');
+  wrap.innerHTML='';
+  if (!sheet || !sheet['!ref']) {
+    wrap.innerHTML='<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
+    return;
+  }
+  // showSubLevels=1: show lvl0 (top categories) + lvl1 (sub-categories), hide detail rows (lvl2+)
+  wrap.appendChild(buildSheet(sheet, 1));
+}
+ 
+// ══════════════════════════════════════════════════════
+// Detail (per file)
+// ══════════════════════════════════════════════════════
+function renderDetailNav() {
+  const empty=document.getElementById('detail-empty');
+  const inner=document.getElementById('detail-inner');
+  if (uploaded.length===0){empty.style.display='flex';inner.style.display='none';return;}
+  empty.style.display='none'; inner.style.display='flex';
+ 
+  const nav=document.getElementById('detail-nav');
+  nav.innerHTML='';
+ 
+  const sel=document.createElement('select'); sel.className='file-sel';
+  uploaded.forEach((f,i)=>{
+    const o=document.createElement('option');
+    o.value=i; o.textContent=f.name.replace(/\.(xls|xlsx)$/i,'');
+    sel.appendChild(o);
+  });
+  sel.onchange=()=>{curDetailFile=parseInt(sel.value);goDetailSheet(curDetailSheet);};
+  nav.appendChild(sel);
+ 
+  uploaded[0].workbook.SheetNames.forEach((name,i)=>{
+    const t=document.createElement('div');
+    t.className='sheet-tab'+(i===0?' active':'');
+    t.textContent=name;
+    t.onclick=()=>{curDetailSheet=i;goDetailSheet(i);};
+    nav.appendChild(t);
+  });
+  goDetailSheet(0);
+}
+ 
+function goDetailSheet(i) {
+  curDetailSheet=i;
+  document.querySelectorAll('#detail-nav .sheet-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  const wb=uploaded[curDetailFile]?.workbook;
+  if (!wb) return;
+  const sheet=wb.Sheets[wb.SheetNames[i]];
+  const wrap=document.getElementById('detail-wrap');
+  wrap.innerHTML='';
+  if (!sheet||!sheet['!ref']){
+    wrap.innerHTML='<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
+    return;
+  }
+  wrap.appendChild(buildSheet(sheet, 1));
+}
+ 
+// ══════════════════════════════════════════════════════
+// Sheet List
+// ══════════════════════════════════════════════════════
+function renderSheetList() {
+  const empty=document.getElementById('sheets-empty');
+  const wrap=document.getElementById('sheet-list-wrap');
+  if (uploaded.length===0){empty.style.display='flex';wrap.style.display='none';return;}
+  empty.style.display='none'; wrap.style.display='block';
+ 
+  const body=document.getElementById('sheet-list-body');
+  body.innerHTML='';
+  uploaded[0].workbook.SheetNames.forEach((name,i)=>{
+    const s=uploaded[0].workbook.Sheets[name];
+    let cells=0,fmlas=0;
+    if (s&&s['!ref']) {
+      const r=XLSX.utils.decode_range(s['!ref']);
+      for(let rr=r.s.r;rr<=r.e.r;rr++) for(let cc=r.s.c;cc<=r.e.c;cc++){
+        const c=s[XLSX.utils.encode_cell({r:rr,c:cc})];
+        if(c){cells++;if(c.f)fmlas++;}
+      }
+    }
+    const isEmpty=!s||!s['!ref'];
+    const tr=document.createElement('tr');
+    tr.onclick=()=>{if(mergedWb){switchTab('summary');goSummarySheet(i);}};
+    tr.innerHTML=`<td style="color:#aaa;font-size:.62rem">${i+1}</td>
+      <td style="font-weight:600;color:var(--navy)">${name}</td>
+      <td style="color:var(--muted);font-size:.65rem">${cells.toLocaleString()}</td>
+      <td style="color:var(--num-fx);font-size:.65rem">${fmlas>0?fmlas.toLocaleString():'-'}</td>
+      <td><span class="badge ${isEmpty?'badge-empty':'badge-ok'}">${isEmpty?'空白':'資料'}</span></td>`;
+    body.appendChild(tr);
+  });
+}
+ 
+// ══════════════════════════════════════════════════════
+// Formatters
 // ══════════════════════════════════════════════════════
 function fmtInt(v) {
-  if (v == null || !isFinite(v)) return '';
+  if (v==null||!isFinite(v)) return '';
   return Math.round(v).toLocaleString('zh-TW');
-}
-function fmtNum(v) {
-  if (v == null || !isFinite(v)) return '';
-  return Number.isInteger(v) ? v.toLocaleString('zh-TW') : parseFloat(v.toFixed(2)).toLocaleString('zh-TW');
 }
  
 // ══════════════════════════════════════════════════════
