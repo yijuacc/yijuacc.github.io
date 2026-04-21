@@ -198,7 +198,7 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
  
   <aside class="sidebar">
     <div class="step-block">
-      <div class="step-label"><div class="step-num">1</div><span class="step-title">上傳月報</span></div>
+      <div class="step-label"><div class="step-num">1</div><span class="step-title">上傳決算表</span></div>
       <div class="drop-zone" id="drop-zone">
         <input type="file" accept=".xls,.xlsx" multiple id="file-input" onchange="handleFiles(this.files)">
         <span class="drop-icon">📁</span>
@@ -211,8 +211,8 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
  
     <div class="step-block">
       <div class="step-label"><div class="step-num">2</div><span class="step-title">產生合併</span></div>
-      <button class="btn-primary" id="btn-merge" disabled onclick="mergeFiles()">⚡ 產生合併月報</button>
-      <div class="btn-note" id="merge-note">請先上傳分院月報</div>
+      <button class="btn-primary" id="btn-merge" disabled onclick="mergeFiles()">⚡ 產生合併決算表</button>
+      <div class="btn-note" id="merge-note">請先上傳分院決算表</div>
       <div class="progress-wrap" id="progress-wrap">
         <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
         <div class="progress-text" id="progress-text"></div>
@@ -221,7 +221,7 @@ html, body { height: 100%; font-family: 'Noto Serif TC', serif; background: var(
  
     <div class="step-block">
       <div class="step-label"><div class="step-num">3</div><span class="step-title">下載</span></div>
-      <button class="btn-secondary" id="btn-download" disabled onclick="downloadResult()">↓ 下載合併月報 Excel</button>
+      <button class="btn-secondary" id="btn-download" disabled onclick="downloadResult()">↓ 下載合併決算表 Excel</button>
       <div class="btn-note">包含所有共通工作表</div>
     </div>
   </aside>
@@ -322,10 +322,10 @@ function updateState() {
   const btn  = document.getElementById('btn-merge');
   const mn   = document.getElementById('merge-note');
   note.style.display = n > 0 ? 'block' : 'none';
-  if (n === 0) { btn.disabled=true; mn.textContent='請先上傳分院月報'; }
+  if (n === 0) { btn.disabled=true; mn.textContent='請先上傳分院決算表'; }
   else if (n === 1) {
     note.className='upload-note warn'; note.textContent='⚠ 需至少 2 份才能合併';
-    btn.disabled=true; mn.textContent='還需上傳更多分院';
+    btn.disabled=true; mn.textContent='還需上傳更多分院決算表';
   } else {
     note.className='upload-note ok'; note.textContent=`✓ 已載入 ${n} 份，可開始合併`;
     btn.disabled=false; mn.textContent=`合併 ${n} 間分院的所有工作表`;
@@ -578,7 +578,7 @@ function buildSheet(sheet) {
     }
     if (!hasAmt) continue;
     for (let ci = range.s.c; ci < range.s.c + subjectDepth; ci++) {
-      const cell = sheet[XLSX.utils.encode_cell({r, ci})];
+      const cell = sheet[XLSX.utils.encode_cell({r: r, c: ci})];
       if (cell && cell.t === 's' && cell.v) {
         const lvl = ci - range.s.c;
         if (lvl < minDataLvl) minDataLvl = lvl;
@@ -630,7 +630,7 @@ function buildSheet(sheet) {
     let subjectTxt = '';
     let lvl = -1;
     for (let ci = range.s.c; ci < range.s.c + subjectDepth; ci++) {
-      const cell = sheet[XLSX.utils.encode_cell({r, ci})];
+      const cell = sheet[XLSX.utils.encode_cell({r: r, c: ci})];
       if (cell && cell.t === 's' && cell.v) {
         subjectTxt = (cell.v || '').trim();
         lvl = ci - range.s.c;
