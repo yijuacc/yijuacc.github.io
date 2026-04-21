@@ -566,28 +566,7 @@ function buildSheet(sheet) {
     dataStart = r + 1; // keep advancing past header rows
   }
  
-  // Auto-detect showSubLevels:
-  // Find the minimum indent level that actually has numeric data rows.
-  // Show from that level + 1 deeper (so we always get at least 2 visible levels).
-  let minDataLvl = subjectDepth; // start high
-  for (let r = dataStart; r <= Math.min(dataStart + 60, range.e.r); r++) {
-    let hasAmt = false;
-    for (const g of groups) {
-      const c = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
-      if (c && c.t === 'n') { hasAmt = true; break; }
-    }
-    if (!hasAmt) continue;
-    for (let ci = range.s.c; ci < range.s.c + subjectDepth; ci++) {
-      const cell = sheet[XLSX.utils.encode_cell({r: r, c: ci})];
-      if (cell && cell.t === 's' && cell.v) {
-        const lvl = ci - range.s.c;
-        if (lvl < minDataLvl) minDataLvl = lvl;
-        break;
-      }
-    }
-  }
-  if (minDataLvl === subjectDepth) minDataLvl = 0; // fallback
-  const showSubLevels = minDataLvl + 1; // show min level + one deeper
+  // Show all levels - no filtering
   const table = document.createElement('table');
   table.className = 'dtable';
  
@@ -648,8 +627,6 @@ function buildSheet(sheet) {
     if (!subjectTxt && !hasAmt) continue;
     if (subjectTxt && /^註[：:]/.test(subjectTxt)) break;
  
-    // Skip rows below showSubLevels
-    if (lvl > showSubLevels) continue;
     // Also skip spacer rows with no subject but also no numbers to show
     if (!subjectTxt && !hasAmt) continue;
  
@@ -778,7 +755,7 @@ function goSummarySheet(i) {
     wrap.innerHTML='<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
     return;
   }
-  // showSubLevels=1: show lvl0 (top categories) + lvl1 (sub-categories), hide detail rows (lvl2+)
+  
   wrap.appendChild(buildSheet(sheet));
 }
  
