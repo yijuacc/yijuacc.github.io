@@ -537,10 +537,27 @@ function cleanLabel(s) {
 }
  
 // ══════════════════════════════════════════════════════
+// Sheets that have non-standard layouts → use generic table
+// ══════════════════════════════════════════════════════
+const GENERIC_SHEETS = new Set([
+  '資產折舊','建設改良擴充','建設改良擴充進度','固定資產明細',
+  '營運項目','用人費用-預算','用人費用-決算','用人',
+  '代管資產','代管修繕進度','撥入撥出明細表','契僱人員',
+  '承攬彙總','增汰車輛明細','車輛明細','各項費用-決算',
+  '收支概況','資產變賣','現流工作底稿','註-現流','餘絀撥補'
+]);
+ 
+// ══════════════════════════════════════════════════════
 // Build Table for a Sheet
 // ══════════════════════════════════════════════════════
-function buildSheet(sheet) {
+function buildSheet(sheet, sheetName) {
   const range = XLSX.utils.decode_range(sheet['!ref']);
+ 
+  // Force generic table for non-standard sheets
+  if (sheetName && GENERIC_SHEETS.has(sheetName)) {
+    return buildGenericTable(sheet, range);
+  }
+ 
   const layout = detectLayout(sheet, range);
  
   if (!layout || layout.groups.length === 0) {
@@ -667,43 +684,96 @@ function buildSheet(sheet) {
   return table;
 }
  
-// Fallback: generic table for non-decision sheets
+// Generic table: show all rows with actual data, skip blank rows, show content cleanly
 function buildGenericTable(sheet, range) {
-  const maxR = Math.min(range.e.r, range.s.r+199);
-  const maxC = Math.min(range.e.c, range.s.c+24);
+  const maxR = Math.min(range.e.r, range.s.r + 399);
+  const maxC = Math.min(range.e.c, range.s.c + 29);
  
   const table = document.createElement('table');
   table.className = 'dtable';
   table.style.tableLayout = 'auto';
  
-  const thead = document.createElement('thead');
-  const hr = document.createElement('tr');
-  const empty = document.createElement('th'); empty.style.width='32px'; hr.appendChild(empty);
-  for (let c=range.s.c; c<=maxC; c++) {
-    const th = document.createElement('th'); th.style.minWidth='80px'; th.textContent=XLSX.utils.encode_col(c); hr.appendChild(th);
+  // Collect header rows (first rows with text, before data numbers appear)
+  // Find where consistent numeric data starts (≥3 cols with numbers in a row)
+  let headerEnd = range.s.r + 3; // at minimum skip 4 title rows
+  for (let r = range.s.r + 3; r <= Math.min(range.s.r + 8, maxR); r++) {
+    let numCount = 0;
+    for (let c = range.s.c; c <= maxC; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.t === 'n') numCount++;
+    }
+    if (numCount >= 3) { headerEnd = r - 1; break; }
+    headerEnd = r;
   }
-  thead.appendChild(hr); table.appendChild(thead);
  
+  // Build thead from header rows (skip the first 4 title rows: 院名/表名/年度/單位)
+  const thead = document.createElement('thead');
+  for (let r = range.s.r + 4; r <= headerEnd; r++) {
+    let hasContent = false;
+    for (let c = range.s.c; c <= maxC; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.v !== '' && cell.v != null) { hasContent = true; break; }
+    }
+    if (!hasContent) continue;
+ 
+    const hr = document.createElement('tr');
+    for (let c = range.s.c; c <= maxC; c++) {
+      const addr = XLSX.utils.encode_cell({r, c});
+      const cell = sheet[addr];
+      const th = document.createElement('th');
+      th.style.cssText = 'white-space:nowrap;padding:6px 8px;font-size:0.62rem;';
+      if (cell && cell.v != null && cell.v !== '') {
+        th.textContent = String(cell.v).replace(/\n/g, ' ').trim();
+        th.title = th.textContent;
+      }
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+  }
+  // If no header rows were added, add a minimal column-letter header
+  if (thead.children.length === 0) {
+    const hr = document.createElement('tr');
+    for (let c = range.s.c; c <= maxC; c++) {
+      const th = document.createElement('th');
+      th.textContent = XLSX.utils.encode_col(c);
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+  }
+  table.appendChild(thead);
+ 
+  // Build tbody: all rows from headerEnd+1, skip completely empty rows
   const tbody = document.createElement('tbody');
-  for (let r=range.s.r; r<=maxR; r++) {
-    const tr = document.createElement('tr');
-    const rh = document.createElement('td');
-    rh.style.cssText='color:#aaa;font-size:.6rem;font-family:monospace;text-align:center;padding:4px 6px;background:#f0ece4;border-right:1px solid #e0dbd0;position:sticky;left:0;min-width:32px;';
-    rh.textContent = r+1; tr.appendChild(rh);
+  const dataStart = headerEnd + 1;
  
-    for (let c=range.s.c; c<=maxC; c++) {
-      const addr = XLSX.utils.encode_cell({r,c});
+  for (let r = dataStart; r <= maxR; r++) {
+    // Check if row has any content
+    let hasContent = false;
+    for (let c = range.s.c; c <= maxC; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({r, c})];
+      if (cell && cell.v != null && cell.v !== '') { hasContent = true; break; }
+    }
+    if (!hasContent) continue;
+ 
+    const tr = document.createElement('tr');
+    for (let c = range.s.c; c <= maxC; c++) {
+      const addr = XLSX.utils.encode_cell({r, c});
       const cell = sheet[addr];
       const td = document.createElement('td');
-      if (cell) {
-        if (cell.t==='n' && cell.v!=null) {
-          td.className='amt' + (cell.v<0?' neg':'');
+      if (cell && cell.v != null && cell.v !== '') {
+        if (cell.t === 'n') {
+          td.className = 'amt' + (cell.v < 0 ? ' neg' : (cell.v === 0 ? ' zero' : ''));
           if (hasFx(cell)) td.classList.add('fx');
-          td.textContent = cell.v<0 ? '('+fmtInt(Math.abs(cell.v))+')' : fmtInt(cell.v);
-        } else {
-          td.style.cssText='font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;';
-          td.textContent = cell.w || cell.v || '';
-          td.title = String(cell.v||'');
+          if (cell.t === 'e') { td.textContent = ''; }
+          else if (cell.v < 0) td.textContent = '(' + fmtInt(Math.abs(cell.v)) + ')';
+          else if (cell.v === 0) td.textContent = '-';
+          else td.textContent = fmtInt(cell.v);
+        } else if (cell.t !== 'e') {
+          // text cell
+          const txt = String(cell.v).replace(/\n/g, ' ').trim();
+          td.style.cssText = 'font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;';
+          td.textContent = txt;
+          td.title = txt;
         }
       }
       tr.appendChild(td);
@@ -747,7 +817,7 @@ function goSummarySheet(i) {
     return;
   }
   
-  wrap.appendChild(buildSheet(sheet));
+  wrap.appendChild(buildSheet(sheet, mergedWb.SheetNames[i]));
 }
  
 // ══════════════════════════════════════════════════════
@@ -793,7 +863,7 @@ function goDetailSheet(i) {
     wrap.innerHTML='<div style="padding:24px;color:#aaa;font-family:monospace;font-size:.7rem;">此工作表無資料</div>';
     return;
   }
-  wrap.appendChild(buildSheet(sheet));
+  wrap.appendChild(buildSheet(sheet, wb.SheetNames[i]));
 }
  
 // ══════════════════════════════════════════════════════
@@ -847,4 +917,3 @@ function downloadResult() {
 </script>
 </body>
 </html>
- 
