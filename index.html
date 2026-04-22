@@ -617,18 +617,9 @@ function buildSheet(sheet) {
       }
     }
  
-    // Check if row has numbers
-    let hasAmt = false;
-    for (const g of groups) {
-      const c = sheet[XLSX.utils.encode_cell({r, c: g.amtCol})];
-      if (c && c.t === 'n') { hasAmt = true; break; }
-    }
- 
-    if (!subjectTxt && !hasAmt) continue;
-    if (subjectTxt && /^註[：:]/.test(subjectTxt)) break;
- 
-    // Also skip spacer rows with no subject but also no numbers to show
-    if (!subjectTxt && !hasAmt) continue;
+    // Skip rows with no subject text (auxiliary calc rows, no label)
+    if (!subjectTxt) continue;
+    if (/^註[：:]/.test(subjectTxt)) break;
  
     const tr = document.createElement('tr');
     if (lvl === 0) tr.classList.add('l0');
@@ -856,3 +847,4 @@ function downloadResult() {
 </script>
 </body>
 </html>
+ 
